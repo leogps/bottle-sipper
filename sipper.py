@@ -96,6 +96,7 @@ class Sipper(Thread):
                 size_td = wrap_in_column('', 'file-size')
 
             link_path = '/'.join([path.replace(self.directory, '', 1), f]).replace('//', '/')
+            link_path = ('/' + link_path) if not link_path.startswith('/') else link_path
             link = Template(DIR_LINK_TEMPLATE)
             link_html = link.substitute(link=link_path, link_text=f)
             link_td = wrap_in_column(link_html, 'display-name')
