@@ -14,6 +14,13 @@ https://github.com/http-party/http-server | https://www.npmjs.com/package/http-s
 
 ---
 
+### Development
+
+    python -m venv .venv # (Optional)
+    pip install -r requirements.txt
+
+---
+
 ### Usage
   
     sipper = Sipper('<dir>')

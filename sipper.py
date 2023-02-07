@@ -43,11 +43,16 @@ def sizeof_fmt(num, suffix="B"):
         num /= 1024.0
     return f"{num:.1f}Yi{suffix}"
 
+def handle_shortcut_symbols(directory):
+    if os.name == 'nt' and directory.startswith('~'):
+        return directory.replace('~', os.path.expanduser('~'), 1)
+
 
 class Sipper(Thread):
 
     def __init__(self, directory, show_directory_listings=True):
         Thread.__init__(self)
+        directory = handle_shortcut_symbols(directory)
         self.directory = directory
         self.show_directory_listings = show_directory_listings
         self.daemon = False
