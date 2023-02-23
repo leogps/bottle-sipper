@@ -29,7 +29,7 @@ https://github.com/http-party/http-server | https://www.npmjs.com/package/http-s
 --- 
     
     
-    usage: sipper.py [-h] [-d DIR] [-a ADDRESS] [-p PORT] directory
+    usage: sipper.py [-h] [-d DIR] [-a ADDRESS] [-p PORT] [-u USERNAME] [-t PASSWORD] directory
 
     positional arguments:
     directory
@@ -40,4 +40,7 @@ https://github.com/http-party/http-server | https://www.npmjs.com/package/http-s
       -a ADDRESS, --address ADDRESS
                             Address for the server, defaults to 0.0.0.0
       -p PORT, --port PORT  Port for the server
-
+      -u USERNAME, --username USERNAME
+                            Username for basic authentication
+      -t PASSWORD, --password PASSWORD
+                            Password for basic authentication

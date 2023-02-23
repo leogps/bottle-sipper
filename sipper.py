@@ -11,14 +11,15 @@ Copyright (c) 2022-2023, Paul Gundarapu. License: MIT (see LICENSE for details)
 
 import os
 import pathlib
+from abc import abstractmethod
+from argparse import ArgumentParser
 from datetime import datetime
 from string import Template
 from threading import Thread
 from time import sleep
 
 import ifaddr
-from argparse import ArgumentParser
-from bottle import get, run, static_file, HTTPResponse, ServerAdapter
+from bottle import get, run, static_file, request, response, HTTPResponse, ServerAdapter
 
 
 def wrap_in_column(content, style_class):
@@ -43,24 +44,82 @@ def sizeof_fmt(num, suffix="B"):
         num /= 1024.0
     return f"{num:.1f}Yi{suffix}"
 
+
 def handle_shortcut_symbols(directory):
     if os.name == 'nt' and directory.startswith('~'):
         return directory.replace('~', os.path.expanduser('~'), 1)
     return directory
 
 
+class Authentication:
+    def __init__(self, enabled=False, mechanism=None):
+        self.enabled = enabled
+        self.mechanism = mechanism
+        self.failed_status_code = 401
+        self.failed_message = 'Access Denied.'
+
+    @abstractmethod
+    def decorate_with_auth_required(self, res):
+        pass
+
+    @abstractmethod
+    def authenticate(self, header):
+        pass
+
+
+class BasicAuthentication(Authentication):
+
+    def __init__(self, realm='', enabled=False, username=None, password=None):
+        Authentication.__init__(self, enabled=enabled, mechanism='Basic')
+        self.username = username
+        self.password = password
+        self.realm = realm
+        self.__header_regex = r'Basic (?P<credentials>.*)'
+        self.__username_password_regex = r'(?P<username>.*):(?P<password>.*)'
+
+    def decorate_with_auth_required(self, res):
+        res.set_header('WWW-Authenticate', 'Basic realm="%s"' % self.realm)
+        res.set_header('Content-Type', 'text/html')
+        res.status = self.failed_status_code
+        res.body = self.failed_message
+
+    def authenticate(self, header):
+        import re
+        basic_header_match = re.match(self.__header_regex, header)
+        if basic_header_match is None:
+            return False
+        credentials = basic_header_match.group('credentials')
+        from base64 import b64decode
+        decoded = b64decode(credentials).decode('utf-8')
+        username_password_match = re.match(self.__username_password_regex, decoded)
+        if username_password_match is None:
+            return False
+        username = username_password_match.group('username')
+        password = username_password_match.group('password')
+        return self.username == username and self.password == password
+
+
 class Sipper(Thread):
 
-    def __init__(self, directory, show_directory_listings=True):
+    def __init__(self, directory, show_directory_listings=True, auth=Authentication()):
         Thread.__init__(self)
         directory = handle_shortcut_symbols(directory)
         self.directory = directory
         self.show_directory_listings = show_directory_listings
+        self.authentication = auth
         self.daemon = False
         self.threads = []
         self.servers = []
 
+    def handle_auth(self, req, res):
+        header = req.get_header('Authorization')
+        if not isinstance(header, str) or not self.authentication.authenticate(header):
+            self.authentication.decorate_with_auth_required(res)
+            raise res.copy(cls=HTTPResponse)
+
     def serve(self, url_path=''):
+        if self.authentication.enabled:
+            self.handle_auth(request, response)
         # print('Requested: %s' % url_path)
         url_path_normalized = url_path.replace('/', '', 1)
         filename = os.path.join(self.directory, url_path_normalized)
@@ -115,10 +174,11 @@ class Sipper(Thread):
             rows.append(row)
 
         rows_html = ''.join(rows)
+        table = wrap_in_table(rows_html)
         html = Template(DIR_LIST_TEMPLATE)
         index_of = path.replace(self.directory, '', 1)
-        links_html = html.substitute(dir=index_of, links=rows_html)
-        return wrap_in_table(links_html)
+        html = html.substitute(dir=index_of, table=table)
+        return html
 
     def _run(self, address, port):
         # print('Serving at http://{}:{}'.format(ip, port))
@@ -168,13 +228,23 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--dir', default=True, required=False, help='Show directory listings')
     parser.add_argument('-a', '--address', required=False, help='Address for the server, defaults to 0.0.0.0')
     parser.add_argument('-p', '--port', default=8080, required=False, help='Port for the server')
+    parser.add_argument('-u', '--username', default=None, required=False, help='Username for basic authentication')
+    parser.add_argument('-t', '--password', default=None, required=False, help='Password for basic authentication')
     parser.add_argument('directory')
 
     args = parser.parse_args()
     if not isinstance(args.dir, bool):
         args.dir = True if (args.dir in ['true', '1', 't', 'y', 'yes', 'yeah', 'yup']) else False
 
-    sipper = Sipper(args.directory, show_directory_listings=args.dir)
+    authentication = Authentication()
+    if args.username is not None or args.password is not None:
+        if args.username is None:
+            args.username = ''
+        if args.password is None:
+            args.password = ''
+        authentication = BasicAuthentication(enabled=True, username=args.username, password=args.password)
+
+    sipper = Sipper(args.directory, show_directory_listings=args.dir, auth=authentication)
     get('<url_path:path>')(sipper.serve)
 
     # sipper.start('0.0.0.0', args.port)
@@ -211,7 +281,7 @@ DIR_LIST_TEMPLATE = """
         </head>
         <body>
             <h1>Index of $dir</h1>		
-            $links
+            $table
         </body>
     </html>
 """
