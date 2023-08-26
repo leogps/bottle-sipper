@@ -67,6 +67,11 @@
         }
 
         @media screen and (max-width: 600px) {
+            .container {
+                width: 100%;
+                padding: 0;
+            }
+
             .card {
                 flex-direction: column;
                 align-items: flex-start;
@@ -116,7 +121,7 @@
     <div class="container">
         % for row in rows:
           % include(row_template_file)
-        % end 
+        % end
     </div>
     <div class="footer">
         Python {{python_version}}/ <a href="{{app_link}}">{{app_name}}</a> server running @ {{server_address}}
