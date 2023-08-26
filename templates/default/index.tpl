@@ -22,6 +22,11 @@
                   background-image: url("data:img/png;base64,{{icon.base64_data}}")
                 }
               % end
+
+              div.footer {
+                margin-top: 2em;
+                bottom: 0;
+              }
             </style>
         </head>
         <body>
@@ -33,6 +38,9 @@
                 % end
               </tbody>
             </table>
+            <div class="footer">
+                Python {{python_version}}/ <a href="{{app_link}}">{{app_name}}</a> server running @ {{server_address}}
+            </div>
         </body>
     </html>
 

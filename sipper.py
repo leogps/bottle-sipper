@@ -21,15 +21,16 @@ from bottle import get, run, static_file, request, response, HTTPResponse, Simpl
 
 from server import SipperWSGIRefServer
 from auth import Authentication, BasicAuthentication
-from constants import get_icons, get_mime_extensions
+from constants import get_icons, get_mime_extensions, YES, DEFAULT_TEMPLATE_BASE_DIR, get_python_version, APP_NAME, \
+    APP_LINK
 from common import perms_to_string, sizeof_fmt, handle_shortcut_symbols, build_icons
-from html import FileRow, FileColumn, ITag, AnchorHtmlTag
+from html import FileDetails, FileRow, FileColumn, ITag, AnchorHtmlTag
 
 
 class Sipper(Thread):
 
-    def __init__(self, directory, show_directory_listings=True, auth=Authentication(), template_base_dir='templates'
-                                                                                                         '/default/'):
+    def __init__(self, directory, show_directory_listings=True, auth=Authentication(),
+                 template_base_dir=DEFAULT_TEMPLATE_BASE_DIR):
         Thread.__init__(self)
         directory = handle_shortcut_symbols(directory)
         self.directory = directory
@@ -38,7 +39,13 @@ class Sipper(Thread):
         self.daemon = False
         self.threads = []
         self.servers = []
-        self.template_base_dir = template_base_dir
+        if template_base_dir is None:
+            self.template_base_dir = DEFAULT_TEMPLATE_BASE_DIR
+        else:
+            self.template_base_dir = template_base_dir
+
+    def get_server_address(self):
+        return ':'.join([request.remote_addr, str(self.server_port)])
 
     def handle_auth(self, req, res):
         header = req.get_header('Authorization')
@@ -91,37 +98,49 @@ class Sipper(Thread):
                 ext = extension.lower().replace('.', '')
                 if ext in icons_json:
                     icon_style_class = ext
+            file_details_file_icon_base64 = icons_json[icon_style_class]
             icon.add_style_class(''.join(['icon-', icon_style_class]))
-            icon_col = FileColumn(value=icon,
+            icon_col = FileColumn(name='icon',
+                                  value=icon,
                                   col_template_file=col_template_file,
                                   is_itag=True,
                                   itag_template_file=itag_template_file)
 
             last_modified = os.path.getmtime(file_path)
             modified_date = datetime.fromtimestamp(last_modified).strftime('%d-%b-%Y %H:%M')
-            modified_date_col = FileColumn(value=modified_date,
+            modified_date_col = FileColumn(name='last_modified_date',
+                                           value=modified_date,
                                            style_class='',
                                            col_template_file=col_template_file)
 
             stat_info = os.stat(file_path)
 
             file_permissions = ''.join(['(', perms_to_string(stat_info, os.path.isdir(file_path)), ')'])
-            file_permissions_col = FileColumn(value=file_permissions,
+            file_permissions_col = FileColumn(name='file_permissions',
+                                              value=file_permissions,
                                               col_template_file=col_template_file)
 
             if os.path.isfile(file_path):
+                file_details_is_dir = False
                 size = stat_info.st_size
                 size_formatted = sizeof_fmt(size)
-                size_col = FileColumn(value=size_formatted,
+                size_col = FileColumn(name='file_size',
+                                      value=size_formatted,
                                       style_class='file-size',
                                       col_template_file=col_template_file)
             else:
-                size_col = FileColumn(value='', style_class='file-size', col_template_file=col_template_file)
+                file_details_is_dir = True
+                size_formatted = ''
+                size_col = FileColumn(name='file_size',
+                                      value=size_formatted,
+                                      style_class='file-size', 
+                                      col_template_file=col_template_file)
 
             link_path = '/'.join([path.replace(self.directory, '', 1), f]).replace('//', '/')
             link_path = ('/' + link_path) if not link_path.startswith('/') else link_path
             link = AnchorHtmlTag(link=link_path, link_text=f)
-            link_col = FileColumn(value=link,
+            link_col = FileColumn(name='file_link',
+                                  value=link,
                                   style_class='display-name',
                                   col_template_file=col_template_file,
                                   is_link=True,
@@ -133,7 +152,15 @@ class Sipper(Thread):
             columns.append(size_col)
             columns.append(link_col)
 
-            row = FileRow(columns)
+            file_details = FileDetails(is_dir=file_details_is_dir,
+                                       file_icon_style_class=icon_style_class,
+                                       file_icon_base64=file_details_file_icon_base64,
+                                       last_modified_date=modified_date,
+                                       file_permissions=file_permissions,
+                                       file_size=size_formatted,
+                                       file_link=link_path,
+                                       file_name=f)
+            row = FileRow(file_details=file_details, cols=columns)
             rows.append(row)
 
         html = SimpleTemplate(name=self.build_template_file_path('index.tpl'))
@@ -143,7 +170,11 @@ class Sipper(Thread):
                 'dir': index_of,
                 'rows': rows,
                 'row_template_file': self.build_template_file_path('row.tpl'),
-                'icons': icons
+                'icons': icons,
+                'python_version': get_python_version(),
+                'app_name': APP_NAME,
+                'app_link': APP_LINK,
+                'server_address': self.get_server_address()
         }
 
         html = html.render(**html_model)
@@ -156,6 +187,7 @@ class Sipper(Thread):
         # print('Serving at http://{}:{}'.format(ip, port))
         server = SipperWSGIRefServer(host=address, port=port)
         self.servers.append(server)
+        self.server_port = port
         run(quiet=False, server=server)
 
     def start_sipping(self, address, port):
@@ -178,16 +210,17 @@ if __name__ == "__main__":
     main()
 
     parser = ArgumentParser()
-    parser.add_argument('-d', '--dir', default=True, required=False, help='Show directory listings')
+    parser.add_argument('-d', '--show-dir', default=True, required=False, help='Show directory listings')
     parser.add_argument('-a', '--address', required=False, help='Address for the server, defaults to 0.0.0.0')
     parser.add_argument('-p', '--port', default=8080, required=False, help='Port for the server')
     parser.add_argument('-u', '--username', default=None, required=False, help='Username for basic authentication')
     parser.add_argument('-t', '--password', default=None, required=False, help='Password for basic authentication')
+    parser.add_argument('-b', '--template-base-dir', default=None, required=False, help='Template base directory')
     parser.add_argument('directory')
 
     args = parser.parse_args()
-    if not isinstance(args.dir, bool):
-        args.dir = True if (args.dir in ['true', '1', 't', 'y', 'yes', 'yeah', 'yup']) else False
+    if not isinstance(args.show_dir, bool):
+        args.show_dir = True if (args.show_dir in YES) else False
 
     authentication = Authentication()
     if args.username is not None or args.password is not None:
@@ -197,7 +230,8 @@ if __name__ == "__main__":
             args.password = ''
         authentication = BasicAuthentication(enabled=True, username=args.username, password=args.password)
 
-    sipper = Sipper(args.directory, show_directory_listings=args.dir, auth=authentication)
+    sipper = Sipper(args.directory, show_directory_listings=args.show_dir, auth=authentication,
+                    template_base_dir=args.template_base_dir)
     get('<url_path:path>')(sipper.serve)
 
     # sipper.start('0.0.0.0', args.port)
