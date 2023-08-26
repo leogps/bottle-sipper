@@ -1,18 +1,25 @@
 from distutils.core import setup
+from setuptools import setup, find_packages
 
-import sipper_setup as sipper
+__author__ = 'Paul Gundarapu'
+__author_email__ = 'leogps@outlook.com'
+__version__ = '0.1.0'
+__license__ = 'MIT'
+__description__ = 'Simple, zero-configuration command-line static HTTP server.'
+
+packages = [
+    'sipper_core',
+    'static'
+]
 
 setup(
     name='bottle-sipper',
-    packages=[
-        'sipper_core',
-        'static',
-    ],
-    version=sipper.__version__,
-    license=sipper.__license__,
-    description=sipper.__description__,
-    author=sipper.__author__,
-    author_email=sipper.__author_email__,
+    packages=packages,
+    version=__version__,
+    license=__license__,
+    description=__description__,
+    author=__author__,
+    author_email=__author_email__,
     url='https://github.com/leogps/bottle-sipper',
     keywords=['bottle',
               'http',

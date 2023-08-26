@@ -8,9 +8,11 @@
 
 name: Upload Python Package
 
+# Trigger the create release workflow
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
 
 permissions:
   contents: read
