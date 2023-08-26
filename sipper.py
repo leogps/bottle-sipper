@@ -20,17 +20,24 @@ import ifaddr
 from bottle import get, run, static_file, request, response, HTTPResponse, SimpleTemplate
 
 from server import SipperWSGIRefServer
-from auth import Authentication, BasicAuthentication
-from constants import get_icons, get_mime_extensions, YES, DEFAULT_TEMPLATE_BASE_DIR, get_python_version, APP_NAME, \
+from sipper_core.auth import Authentication, BasicAuthentication
+from sipper_core.constants import get_icons, get_mime_extensions, YES, get_templates, get_default_template, \
+    find_existing_template, \
+    get_python_version, \
+    APP_NAME, \
     APP_LINK
-from common import perms_to_string, sizeof_fmt, handle_shortcut_symbols, build_icons
-from html import FileDetails, FileRow, FileColumn, ITag, AnchorHtmlTag
+from sipper_core.common import perms_to_string, sizeof_fmt, handle_shortcut_symbols, build_icons
+from sipper_core.html import FileDetails, FileRow, FileColumn, ITag, AnchorHtmlTag
 
 
 class Sipper(Thread):
 
-    def __init__(self, directory, show_directory_listings=True, auth=Authentication(),
-                 template_base_dir=DEFAULT_TEMPLATE_BASE_DIR):
+    def __init__(self,
+                 directory,
+                 show_directory_listings=True,
+                 auth=Authentication(),
+                 use_available_template=get_default_template().name,
+                 template_base_dir=None):
         Thread.__init__(self)
         directory = handle_shortcut_symbols(directory)
         self.directory = directory
@@ -39,10 +46,21 @@ class Sipper(Thread):
         self.daemon = False
         self.threads = []
         self.servers = []
-        if template_base_dir is None:
-            self.template_base_dir = DEFAULT_TEMPLATE_BASE_DIR
-        else:
+        if template_base_dir is not None:
             self.template_base_dir = template_base_dir
+        else:
+            if use_available_template is None:
+                use_available_template = get_default_template().name
+            existing_template = find_existing_template(use_available_template)
+            if existing_template is None:
+                raise Exception('template not found: ' + use_available_template + '\nAvailable templates: ' +
+                                ', '.join(
+                                    i.name
+                                    for i in
+                                    get_templates()
+                                ))
+            else:
+                self.template_base_dir = existing_template.path
 
     def get_server_address(self):
         return ':'.join([request.remote_addr, str(self.server_port)])
@@ -133,7 +151,7 @@ class Sipper(Thread):
                 size_formatted = ''
                 size_col = FileColumn(name='file_size',
                                       value=size_formatted,
-                                      style_class='file-size', 
+                                      style_class='file-size',
                                       col_template_file=col_template_file)
 
             link_path = '/'.join([path.replace(self.directory, '', 1), f]).replace('//', '/')
@@ -167,14 +185,14 @@ class Sipper(Thread):
         index_of = path.replace(self.directory, '', 1)
 
         html_model = {
-                'dir': index_of,
-                'rows': rows,
-                'row_template_file': self.build_template_file_path('row.tpl'),
-                'icons': icons,
-                'python_version': get_python_version(),
-                'app_name': APP_NAME,
-                'app_link': APP_LINK,
-                'server_address': self.get_server_address()
+            'dir': index_of,
+            'rows': rows,
+            'row_template_file': self.build_template_file_path('row.tpl'),
+            'icons': icons,
+            'python_version': get_python_version(),
+            'app_name': APP_NAME,
+            'app_link': APP_LINK,
+            'server_address': self.get_server_address()
         }
 
         html = html.render(**html_model)
@@ -214,8 +232,19 @@ if __name__ == "__main__":
     parser.add_argument('-a', '--address', required=False, help='Address for the server, defaults to 0.0.0.0')
     parser.add_argument('-p', '--port', default=8080, required=False, help='Port for the server')
     parser.add_argument('-u', '--username', default=None, required=False, help='Username for basic authentication')
-    parser.add_argument('-t', '--password', default=None, required=False, help='Password for basic authentication')
-    parser.add_argument('-b', '--template-base-dir', default=None, required=False, help='Template base directory')
+    parser.add_argument('-P', '--password', default=None, required=False, help='Password for basic authentication')
+    parser.add_argument('-b', '--template-base-dir', default=None, required=False, help='Template base directory. '
+                                                                                        'Takes precedence over '
+                                                                                        '--use-available-template '
+                                                                                        'option')
+    parser.add_argument('-t', '--use-available-template', default=None, required=False, help='Use out-of-the-box '
+                                                                                             'templates. '
+                                                                                             'Available templates: ' +
+                                                                                             ', '.join(
+                                                                                                 i.name
+                                                                                                 for i in
+                                                                                                 get_templates()
+                                                                                             ))
     parser.add_argument('directory')
 
     args = parser.parse_args()
@@ -231,6 +260,7 @@ if __name__ == "__main__":
         authentication = BasicAuthentication(enabled=True, username=args.username, password=args.password)
 
     sipper = Sipper(args.directory, show_directory_listings=args.show_dir, auth=authentication,
+                    use_available_template=args.use_available_template,
                     template_base_dir=args.template_base_dir)
     get('<url_path:path>')(sipper.serve)
 

@@ -1,6 +1,6 @@
 import os
-from constants import get_icons
-from html import Icon
+from sipper_core.constants import get_icons
+from sipper_core.html import Icon
 
 
 def perms_to_string(stat, is_dir):

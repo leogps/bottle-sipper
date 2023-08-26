@@ -1,6 +1,7 @@
 launch.json
 *.pyc
 
+*.egg-info/
 __pycache__
 .idea/
 .vscode/
