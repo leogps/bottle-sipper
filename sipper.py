@@ -6,7 +6,9 @@ https://github.com/bottlepy/bottle | https://bottlepy.org/docs/dev/ It aims to p
 http-server tool written in nodejs: https://github.com/http-party/http-server |
 https://www.npmjs.com/package/http-server
 
-Copyright (c) 2022-2023, Paul Gundarapu. License: MIT (see LICENSE for details)
+Homepage and documentation: https://github.com/leogps/bottle-sipper
+
+Copyright (c) 2023, Paul Gundarapu. License: MIT (see LICENSE for details)
 """
 
 import os
@@ -18,6 +20,7 @@ from time import sleep
 
 import ifaddr
 from bottle import get, run, static_file, request, response, HTTPResponse, SimpleTemplate
+from bottle import __version__ as bottle_version
 
 from server import SipperWSGIRefServer
 from sipper_core.auth import Authentication, BasicAuthentication
@@ -26,8 +29,10 @@ from sipper_core.constants import get_icons, get_mime_extensions, YES, get_templ
     get_python_version, \
     APP_NAME, \
     APP_LINK
-from sipper_core.common import perms_to_string, sizeof_fmt, handle_shortcut_symbols, build_icons
+from sipper_core.common import perms_to_string, sizeof_fmt, handle_shortcut_symbols, build_icons, \
+    file_exists_and_is_file
 from sipper_core.html import FileDetails, FileRow, FileColumn, ITag, AnchorHtmlTag
+from sipper_core.metadata import __version__
 
 
 class Sipper(Thread):
@@ -37,7 +42,10 @@ class Sipper(Thread):
                  show_directory_listings=True,
                  auth=Authentication(),
                  use_available_template=get_default_template().name,
-                 template_base_dir=None):
+                 template_base_dir=None,
+                 ssl_enabled=False,
+                 ssl_cert=None,
+                 ssl_key=None):
         Thread.__init__(self)
         directory = handle_shortcut_symbols(directory)
         self.directory = directory
@@ -46,6 +54,19 @@ class Sipper(Thread):
         self.daemon = False
         self.threads = []
         self.servers = []
+        # Handling ssl config
+        if ssl_enabled:
+            if ssl_cert is None or ssl_key is None:
+                raise Exception('ssl cert/key missing. Need ssl cert and ssl key to enable ssl.')
+            elif not file_exists_and_is_file(ssl_cert):
+                raise Exception('ssl_cert file does not exist or is not a file.')
+            elif not file_exists_and_is_file(ssl_key):
+                raise Exception('ssl_key file does not exist or is not a file.')
+
+        self.ssl_enabled = ssl_enabled
+        self.ssl_cert = ssl_cert
+        self.ssl_key = ssl_key
+        # Handling templates.
         if template_base_dir is not None:
             self.template_base_dir = template_base_dir
         else:
@@ -206,15 +227,31 @@ class Sipper(Thread):
     def build_template_file_path(self, template_file):
         return os.path.join(self.template_base_dir, template_file)
 
-    def _run(self, address, port):
+    def _run(self, address, port,
+             ssl_enabled=False,
+             ssl_cert=None,
+             ssl_key=None):
         # print('Serving at http://{}:{}'.format(ip, port))
-        server = SipperWSGIRefServer(host=address, port=port)
+        server = SipperWSGIRefServer(host=address,
+                                     port=port,
+                                     ssl_enabled=ssl_enabled,
+                                     ssl_cert=ssl_cert,
+                                     ssl_key=ssl_key)
         self.servers.append(server)
         self.server_port = port
-        run(quiet=False, server=server)
+        print("Bottle v%s server starting up (using %s)...\n" % (bottle_version, repr(server)))
+        protocol = 'https' if ssl_enabled else 'http'
+        print("Starting server on %s://%s:%d/\n" % (protocol, server.host, server.port))
+        run(quiet=True, server=server)
 
     def start_sipping(self, address, port):
-        thread = Thread(target=self._run, args=[address, port])
+        thread = Thread(target=self._run, kwargs={
+            'address': address,
+            'port': port,
+            'ssl_enabled': self.ssl_enabled,
+            'ssl_cert': self.ssl_cert,
+            'ssl_key': self.ssl_key
+        })
         thread.start()
         self.threads.append(thread)
 
@@ -223,6 +260,18 @@ class Sipper(Thread):
         sleep(wait_before_shutdown)
         for server in self.servers:
             server.shutdown()
+
+    def config_formatted(self):
+        config = 'Show Directory Listings: %s' % self.show_directory_listings
+        if self.authentication.enabled:
+            config += '\n' + 'Authentication Enabled: True'
+        if self.ssl_enabled:
+            config += '\n' + 'SSL Enabled: True'
+        for t in get_templates():
+            if t.path == self.template_base_dir:
+                config += '\n' + 'Template: ' + t.name
+                break
+        return config
 
 
 def main():
@@ -236,20 +285,27 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--show-dir', default=True, required=False, help='Show directory listings')
     parser.add_argument('-a', '--address', required=False, help='Address for the server, defaults to 0.0.0.0')
     parser.add_argument('-p', '--port', default=8080, required=False, help='Port for the server')
-    parser.add_argument('-u', '--username', default=None, required=False, help='Username for basic authentication')
-    parser.add_argument('-P', '--password', default=None, required=False, help='Password for basic authentication')
-    parser.add_argument('-b', '--template-base-dir', default=None, required=False, help='Template base directory. '
-                                                                                        'Takes precedence over '
-                                                                                        '--use-available-template '
-                                                                                        'option')
-    parser.add_argument('-t', '--use-available-template', default=None, required=False, help='Use out-of-the-box '
-                                                                                             'templates. '
-                                                                                             'Available templates: ' +
-                                                                                             ', '.join(
-                                                                                                 i.name
-                                                                                                 for i in
-                                                                                                 get_templates()
-                                                                                             ))
+    # auth options
+    auth_arg_group = parser.add_argument_group('auth-options')
+    auth_arg_group.add_argument('-u', '--username', default=None, required=False,
+                                help='Username for basic authentication')
+    auth_arg_group.add_argument('-P', '--password', default=None, required=False,
+                                help='Password for basic authentication')
+
+    parser.add_argument('-b', '--template-base-dir', default=None, required=False,
+                        help='Template base directory. '
+                             'Takes precedence over --use-available-template option')
+    parser.add_argument('-t', '--use-available-template', default=None, required=False,
+                        help='Use out-of-the-box templates. '
+                             'Available templates: ' + ', '.join(i.name for i in get_templates()))
+    # ssl options
+    ssl_arg_group = parser.add_argument_group('ssl-options')
+    ssl_arg_group.add_argument('-S', '--ssl-enabled', '--tls-enabled', default=False, required=False,
+                               action='store_true',
+                               help='Enable secure request serving with TLS/SSL (HTTPS).')
+    ssl_arg_group.add_argument('-C', '--cert', default=None, required=False, help='Path to ssl cert file')
+    ssl_arg_group.add_argument('-K', '--key', default=None, required=False, help='Path to ssl key file')
+
     parser.add_argument('directory')
 
     args = parser.parse_args()
@@ -264,12 +320,27 @@ if __name__ == "__main__":
             args.password = ''
         authentication = BasicAuthentication(enabled=True, username=args.username, password=args.password)
 
-    sipper = Sipper(args.directory, show_directory_listings=args.show_dir, auth=authentication,
+    if args.ssl_enabled and (not args.cert or not args.key):
+        parser.error('--cert and --key are required to enable ssl.')
+
+    sipper = Sipper(args.directory,
+                    show_directory_listings=args.show_dir,
+                    auth=authentication,
                     use_available_template=args.use_available_template,
-                    template_base_dir=args.template_base_dir)
+                    template_base_dir=args.template_base_dir,
+                    ssl_enabled=args.ssl_enabled,
+                    ssl_cert=args.cert,
+                    ssl_key=args.key)
     get('<url_path:path>')(sipper.serve)
 
-    # sipper.start('0.0.0.0', args.port)
+    print('Starting up bottle-sipper, serving %s' % sipper.directory)
+    print('')
+    print('bottle-sipper version: %s' % __version__)
+    print('')
+    print('bottle-sipper settings:')
+    print(sipper.config_formatted())
+    print('')
+
     if args.address is None:
         adapters = ifaddr.get_adapters()
         for adapter in adapters:
@@ -278,7 +349,10 @@ if __name__ == "__main__":
                 # print("   %s/%s" % (ip.ip, ip.network_prefix))
                 theIp = ip.ip
                 if (theIp is None or (not isinstance(theIp, str)) or (ip.is_IPv6 and theIp.find('%') != -1) or (
-                        ip.nice_name.startswith('utun') or (ip.nice_name.startswith('bridge')))):
+                        ip.nice_name.startswith('utun')
+                        or (ip.nice_name.startswith('bridge'))
+                        or ip.nice_name.startswith('virbr')
+                )):
                     continue
                 sipper.start_sipping(theIp, args.port)
     else:

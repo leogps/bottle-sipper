@@ -37,14 +37,27 @@ https://github.com/http-party/http-server | https://www.npmjs.com/package/http-s
 
     options:
     -h, --help            show this help message and exit
-    -d SHOW_DIR, --show-dir SHOW_DIR. Show directory listings
-    -a ADDRESS, --address ADDRESS. Address for the server, defaults to 0.0.0.0
+    -d SHOW_DIR, --show-dir SHOW_DIR. 
+                           Show directory listings
+    -a ADDRESS, --address ADDRESS. 
+                           Address for the server, defaults to 0.0.0.0
     -p PORT, --port PORT  Port for the server
-    -u USERNAME, --username USERNAME. Username for basic authentication
-    -P PASSWORD, --password PASSWORD. Password for basic authentication
-    -b TEMPLATE_BASE_DIR, --template-base-dir TEMPLATE_BASE_DIR. Template base directory. Takes precedence over --use-available-template option
-    -t USE_AVAILABLE_TEMPLATE, --use-available-template USE_AVAILABLE_TEMPLATE. Use out-of-the-box templates. Available templates: default, media
+    -b TEMPLATE_BASE_DIR, --template-base-dir TEMPLATE_BASE_DIR. 
+                          Template base directory. Takes precedence over --use-available-template option
+    -t USE_AVAILABLE_TEMPLATE, --use-available-template 
+                          USE_AVAILABLE_TEMPLATE. Use out-of-the-box templates. Available templates: default, media
 
+    auth-options:
+    -u USERNAME, --username USERNAME
+                          Username for basic authentication
+    -P PASSWORD, --password PASSWORD
+                          Password for basic authentication
+
+    ssl-options:
+    -S, --ssl-enabled, --tls-enabled
+                          Enable secure request serving with TLS/SSL (HTTPS).
+    -C CERT, --cert CERT  Path to ssl cert file
+    -K KEY, --key KEY     Path to ssl key file
 ---
 
 #### Programmatical usage:

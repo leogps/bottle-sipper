@@ -37,3 +37,7 @@ def build_icons():
         icon = Icon(name=ext, base64_data=icons_json[ext])
         icons.append(icon)
     return icons
+
+
+def file_exists_and_is_file(file_path):
+    return os.path.exists(file_path) and os.path.isfile(file_path)

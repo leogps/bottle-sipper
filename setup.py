@@ -1,10 +1,11 @@
 from distutils.core import setup
 
-__author__ = 'Paul Gundarapu'
-__author_email__ = 'leogps@outlook.com'
-__version__ = '0.1.0'
-__license__ = 'MIT'
-__description__ = 'Simple, zero-configuration command-line static HTTP server.'
+from sipper_core.metadata import __version__
+from sipper_core.metadata import __license__
+from sipper_core.metadata import __description__
+from sipper_core.metadata import __long_description__
+from sipper_core.metadata import __author__
+from sipper_core.metadata import __author_email__
 
 packages = [
     'sipper_core',
@@ -17,7 +18,7 @@ setup(
     version=__version__,
     license=__license__,
     description=__description__,
-    long_description=__description__,
+    long_description=__long_description__,
     long_description_content_type='text/markdown',
     author=__author__,
     author_email=__author_email__,
