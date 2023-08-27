@@ -1,4 +1,5 @@
 from distutils.core import setup
+from setuptools import find_packages
 
 from sipper_core.metadata import __version__
 from sipper_core.metadata import __license__
@@ -7,14 +8,30 @@ from sipper_core.metadata import __long_description__
 from sipper_core.metadata import __author__
 from sipper_core.metadata import __author_email__
 
-packages = [
-    'sipper_core',
-    'static'
-]
 
 setup(
     name='bottle-sipper',
-    packages=packages,
+    py_modules=[
+        'sipper'
+    ],
+    packages=find_packages(where="."),
+    package_dir={
+      "": "."
+    },
+    package_data={
+        "sipper_core.templates.default": [
+          "*.tpl"
+        ],
+        "sipper_core.templates.media": [
+            "*.tpl"
+        ],
+        "static": ["*.json"],
+        "test": [
+            "test-cert/*.crt",
+            "test-cert/*.key"
+        ]
+    },
+    include_package_data=True,
     version=__version__,
     license=__license__,
     description=__description__,

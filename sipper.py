@@ -22,7 +22,7 @@ import ifaddr
 from bottle import get, run, static_file, request, response, HTTPResponse, SimpleTemplate
 from bottle import __version__ as bottle_version
 
-from server import SipperWSGIRefServer
+from sipper_core.server import SipperWSGIRefServer
 from sipper_core.auth import Authentication, BasicAuthentication
 from sipper_core.constants import get_icons, get_mime_extensions, YES, get_templates, get_default_template, \
     find_existing_template, \
