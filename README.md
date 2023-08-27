@@ -14,20 +14,21 @@ https://github.com/http-party/http-server | https://www.npmjs.com/package/http-s
 
 ---
 
-### Development
+### Usage
 
-    python -m venv .venv # (Optional)
-    pip install -r requirements.txt
+    # Pip based installation:
+    python -m pip install bottle-sipper
+    
+#### Zero config run
+    python -m sipper <directory-to-serve>
 
+-- OR --
+
+#### Run with 'media' template
+    python -m sipper -t media <directory-to-serve>
 ---
 
-### Usage
-  
-    sipper = Sipper('<dir>')
-    sipper.start_sipping('0.0.0.0', 8080)
-
---- 
-    
+#### Options
     
     usage: sipper.py [-h] [-d SHOW_DIR] [-a ADDRESS] [-p PORT] [-u USERNAME] [-P PASSWORD] [-b TEMPLATE_BASE_DIR] [-t USE_AVAILABLE_TEMPLATE] directory
 
@@ -46,11 +47,18 @@ https://github.com/http-party/http-server | https://www.npmjs.com/package/http-s
 
 ---
 
-    # Pip based installation:
-    python -m pip install bottle-sipper
-    
-    # No-config run:
-    python -m sipper <directory-to-serve>
+#### Programmatical usage:
+  
+    sipper = Sipper('<dir>')
+    sipper.start_sipping('0.0.0.0', 8080)
 
-    # Run with existing 'media' template
-    python -m sipper -t media <directory-to-serve>
+---
+
+### Development
+
+    python -m venv .venv # (Optional)
+    pip install -r requirements.txt
+
+---
+
+
