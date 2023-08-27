@@ -63,7 +63,12 @@ class Sipper(Thread):
                 self.template_base_dir = existing_template.path
 
     def get_server_address(self):
-        return ':'.join([request.remote_addr, str(self.server_port)])
+        host = request.get_header('Host')
+        if host is None:
+            hostname = ''
+        else:
+            hostname = host.split(':')[0]
+        return ':'.join([hostname, str(self.server_port)])
 
     def handle_auth(self, req, res):
         header = req.get_header('Authorization')
