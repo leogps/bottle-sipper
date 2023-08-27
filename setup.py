@@ -1,5 +1,4 @@
 from distutils.core import setup
-from setuptools import setup, find_packages
 
 __author__ = 'Paul Gundarapu'
 __author_email__ = 'leogps@outlook.com'
@@ -18,6 +17,8 @@ setup(
     version=__version__,
     license=__license__,
     description=__description__,
+    long_description=__description__,
+    long_description_content_type='text/markdown',
     author=__author__,
     author_email=__author_email__,
     url='https://github.com/leogps/bottle-sipper',
