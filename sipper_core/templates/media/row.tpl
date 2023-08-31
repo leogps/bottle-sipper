@@ -1,6 +1,5 @@
-% file_details = row.file_details
-<a href="{{file_details.file_link}}">
-    <div class="card">
+<a id="{{ file_details.hash }}" class="data-row" href="{{ file_details.file_link }}">
+    <div class="card" >
          <div class="icon">
              % if file_details.is_dir:
                <i class="fa fa-folder" aria-hidden="true"></i>
@@ -18,4 +17,3 @@
          </div>
     </div>
 </a>
-% end

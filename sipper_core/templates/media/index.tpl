@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -118,13 +117,30 @@
 </head>
 <body>
     <h1 class="title">Index of {{dir}}</h1>
-    <div class="container">
-        % for row in rows:
+    <div class="container file-list">
+        % if searchable:
+        <div class="autocomplete-wrapper">
+            <div class="autocomplete">
+                <input id="search" type="text" name="search" placeholder="Search..." />
+                <span class="clear-icon" id="clearInput">✕</span>
+            </div>
+        </div>
+        % end
+
+        % import os
+        % row_template_file = os.path.join(template_base_dir, 'row.tpl')
+        % for file_details in file_details_list:
           % include(row_template_file)
         % end
     </div>
     <div class="footer">
-        Python {{python_version}}/ <a href="{{app_link}}">{{app_name}}</a> server running @ {{server_address}}
+        Python {{python_version}}/ <a href="{{app_link}}">{{app_name}} ({{app_version}})</a> server running @ {{server_address}}
     </div>
+
+    % if searchable:
+    % import os
+    % search_template_file = os.path.join(template_base_dir, 'search.tpl')
+    % include(search_template_file)
+    % end
 </body>
 </html>

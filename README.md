@@ -46,6 +46,7 @@ https://github.com/http-party/http-server | https://www.npmjs.com/package/http-s
                           Template base directory. Takes precedence over --use-available-template option
     -t USE_AVAILABLE_TEMPLATE, --use-available-template 
                           USE_AVAILABLE_TEMPLATE. Use out-of-the-box templates. Available templates: default, media
+    -q, --searchable      Add search box to be able to search on files (Performs fuzzy search similar to fzf tool).
 
     auth-options:
     -u USERNAME, --username USERNAME

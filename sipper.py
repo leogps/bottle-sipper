@@ -10,7 +10,7 @@ Homepage and documentation: https://github.com/leogps/bottle-sipper
 
 Copyright (c) 2023, Paul Gundarapu. License: MIT (see LICENSE for details)
 """
-
+import json
 import os
 import pathlib
 from argparse import ArgumentParser
@@ -30,8 +30,7 @@ from sipper_core.constants import get_icons, get_mime_extensions, YES, get_templ
     APP_NAME, \
     APP_LINK
 from sipper_core.common import perms_to_string, sizeof_fmt, handle_shortcut_symbols, build_icons, \
-    file_exists_and_is_file
-from sipper_core.html import FileDetails, FileRow, FileColumn, ITag, AnchorHtmlTag
+    file_exists_and_is_file, FileDetails
 from sipper_core.metadata import __version__
 
 
@@ -45,7 +44,8 @@ class Sipper(Thread):
                  template_base_dir=None,
                  ssl_enabled=False,
                  ssl_cert=None,
-                 ssl_key=None):
+                 ssl_key=None,
+                 searchable=False):
         Thread.__init__(self)
         directory = handle_shortcut_symbols(directory)
         self.directory = directory
@@ -82,6 +82,7 @@ class Sipper(Thread):
                                 ))
             else:
                 self.template_base_dir = existing_template.path
+        self.searchable = searchable
 
     def get_server_address(self):
         host = request.get_header('Host')
@@ -124,18 +125,12 @@ class Sipper(Thread):
 
         dir_list = sorted(os.listdir(path), key=lambda v: (not os.path.isdir(os.path.join(path, v)), v.upper()))
 
-        rows = []
-        col_template_file = self.build_template_file_path('col.tpl')
-        link_template_file = self.build_template_file_path('link.tpl')
-        itag_template_file = self.build_template_file_path('i.tpl')
+        file_details_list = []
         icons = build_icons()
         icons_json = get_icons()
         for f in dir_list:
             file_path = os.path.join(path, f)
 
-            columns = []
-
-            icon = ITag(['icon'])
             icon_style_class = '_blank'
             if os.path.isfile(file_path):
                 extension = pathlib.Path(file_path).suffix
@@ -143,58 +138,24 @@ class Sipper(Thread):
                 if ext in icons_json:
                     icon_style_class = ext
             file_details_file_icon_base64 = icons_json[icon_style_class]
-            icon.add_style_class(''.join(['icon-', icon_style_class]))
-            icon_col = FileColumn(name='icon',
-                                  value=icon,
-                                  col_template_file=col_template_file,
-                                  is_itag=True,
-                                  itag_template_file=itag_template_file)
 
             last_modified = os.path.getmtime(file_path)
             modified_date = datetime.fromtimestamp(last_modified).strftime('%d-%b-%Y %H:%M')
-            modified_date_col = FileColumn(name='last_modified_date',
-                                           value=modified_date,
-                                           style_class='',
-                                           col_template_file=col_template_file)
 
             stat_info = os.stat(file_path)
 
             file_permissions = ''.join(['(', perms_to_string(stat_info, os.path.isdir(file_path)), ')'])
-            file_permissions_col = FileColumn(name='file_permissions',
-                                              value=file_permissions,
-                                              col_template_file=col_template_file)
 
             if os.path.isfile(file_path):
                 file_details_is_dir = False
                 size = stat_info.st_size
                 size_formatted = sizeof_fmt(size)
-                size_col = FileColumn(name='file_size',
-                                      value=size_formatted,
-                                      style_class='file-size',
-                                      col_template_file=col_template_file)
             else:
                 file_details_is_dir = True
                 size_formatted = ''
-                size_col = FileColumn(name='file_size',
-                                      value=size_formatted,
-                                      style_class='file-size',
-                                      col_template_file=col_template_file)
 
             link_path = '/'.join([path.replace(self.directory, '', 1), f]).replace('//', '/')
             link_path = ('/' + link_path) if not link_path.startswith('/') else link_path
-            link = AnchorHtmlTag(link=link_path, link_text=f)
-            link_col = FileColumn(name='file_link',
-                                  value=link,
-                                  style_class='display-name',
-                                  col_template_file=col_template_file,
-                                  is_link=True,
-                                  link_template_file=link_template_file)
-
-            columns.append(icon_col)
-            columns.append(file_permissions_col)
-            columns.append(modified_date_col)
-            columns.append(size_col)
-            columns.append(link_col)
 
             file_details = FileDetails(is_dir=file_details_is_dir,
                                        file_icon_style_class=icon_style_class,
@@ -204,22 +165,25 @@ class Sipper(Thread):
                                        file_size=size_formatted,
                                        file_link=link_path,
                                        file_name=f)
-            row = FileRow(file_details=file_details, cols=columns)
-            rows.append(row)
+            file_details_list.append(file_details)
 
         html = SimpleTemplate(name=self.build_template_file_path('index.tpl'))
         index_of = path.replace(self.directory, '', 1)
 
         html_model = {
             'dir': index_of,
-            'rows': rows,
-            'row_template_file': self.build_template_file_path('row.tpl'),
+            'template_base_dir': self.template_base_dir,
+            'file_details_list': file_details_list,
             'icons': icons,
             'python_version': get_python_version(),
             'app_name': APP_NAME,
+            'app_version': __version__,
             'app_link': APP_LINK,
-            'server_address': self.get_server_address()
+            'server_address': self.get_server_address(),
+            'searchable': self.searchable
         }
+        if self.searchable:
+            html_model['file_details_json'] = json.dumps([detail.to_json() for detail in file_details_list])
 
         html = html.render(**html_model)
         return html
@@ -306,6 +270,9 @@ if __name__ == "__main__":
     ssl_arg_group.add_argument('-C', '--cert', default=None, required=False, help='Path to ssl cert file')
     ssl_arg_group.add_argument('-K', '--key', default=None, required=False, help='Path to ssl key file')
 
+    parser.add_argument('-q', '--searchable', action='store_true', default=False, required=False,
+                        help='Add search box to be able to search on files (Performs fuzzy search similar to fzf tool).')
+
     parser.add_argument('directory')
 
     args = parser.parse_args()
@@ -330,7 +297,8 @@ if __name__ == "__main__":
                     template_base_dir=args.template_base_dir,
                     ssl_enabled=args.ssl_enabled,
                     ssl_cert=args.cert,
-                    ssl_key=args.key)
+                    ssl_key=args.key,
+                    searchable=args.searchable)
     get('<url_path:path>')(sipper.serve)
 
     print('Starting up bottle-sipper, serving %s' % sipper.directory)
