@@ -26,6 +26,12 @@ https://github.com/http-party/http-server | https://www.npmjs.com/package/http-s
 
 #### Run with 'media' template
     python -m sipper -t media <directory-to-serve>
+
+-- OR --
+
+#### Run with 'searchable' arg
+    python -m sipper -q <directory-to-serve> # -t media ## to use media template.
+
 ---
 
 #### Options
@@ -75,4 +81,38 @@ https://github.com/http-party/http-server | https://www.npmjs.com/package/http-s
 
 ---
 
+
+### Custom templates
+- Custom templates can be used overriding default templates by passing `-b or --template-base-dir` argument.
+- The custom template supports [SimpleTemplate Engine](https://bottlepy.org/docs/dev/stpl.html) out-of-the-box.
+- The following properties are available for use in the template:
+
+
+      {
+          "dir": "<current_directory>",
+          "template_base_dir": "<template_base_dir>",
+          "file_details_list": [{
+            {
+                "hash": "<hash_of_file_or_dir_within_parent_folder>",
+                "isDir": <true/false>,
+                "fileIconStyleClass": "<icon_style_class_for_file>",
+                "fileIconBase64": "<base64_data_of_icon>",
+                "lastModifiedDate": "<last_modified_date_formatted_as_string>",
+                "filePermissions": "<file_permissions_formatted>",
+                "fileSize": "<file_size_formatted>",
+                "fileLink": "<file_url>",
+                "fileName": "<file_name>"
+            }
+          }],
+          "icons": [{
+            "name": "<icon_name>",
+            "base64_data": "<base64_data_icon>"
+          }],
+          "python_version": "<version_of_python>",
+          "app_name": "<application_name>",
+          "app_version": "<application_version>",
+          "app_link": "<applicantion_link>",
+          "server_address": "<address_of_server>",
+          "searchable": <true/false>
+      }
 
