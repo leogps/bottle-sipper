@@ -33,7 +33,14 @@
 
         a {
             text-decoration: none;
-            color: none;
+        }
+
+        a:visited .card {
+            background-color: #b5beff;
+        }
+
+        a .card {
+            background-color: #8AB4F8;
         }
 
         div.icon {
