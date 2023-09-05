@@ -31,6 +31,7 @@ from sipper_core.constants import get_icons, get_mime_extensions, YES, get_templ
     APP_LINK
 from sipper_core.common import perms_to_string, sizeof_fmt, handle_shortcut_symbols, build_icons, \
     file_exists_and_is_file, FileDetails
+from sipper_core.compress import apply_gzip
 from sipper_core.metadata import __version__
 
 
@@ -45,7 +46,8 @@ class Sipper(Thread):
                  ssl_enabled=False,
                  ssl_cert=None,
                  ssl_key=None,
-                 searchable=False):
+                 searchable=False,
+                 gzip=False):
         Thread.__init__(self)
         directory = handle_shortcut_symbols(directory)
         self.directory = directory
@@ -83,6 +85,7 @@ class Sipper(Thread):
             else:
                 self.template_base_dir = existing_template.path
         self.searchable = searchable
+        self.gzip = gzip
 
     def get_server_address(self):
         host = request.get_header('Host')
@@ -108,6 +111,12 @@ class Sipper(Thread):
         if is_dir:
             return self.handle_dir(filename)
 
+        if self.gzip:
+            gz_file = url_path_normalized + '.gz'
+            gzip_file_full_path = os.path.join(self.directory, gz_file)
+            if file_exists_and_is_file(gzip_file_full_path):
+                return self.handle_gzip_file(gz_file=gz_file)
+
         extension = pathlib.Path(filename).suffix
         ext = extension.lower().replace('.', '')
         mime_type = None
@@ -115,6 +124,14 @@ class Sipper(Thread):
         if ext in mime_type_extensions:
             mime_type = mime_type_extensions[ext]
         return static_file(filename=url_path_normalized, root=self.directory, mimetype=mime_type)
+
+    def handle_gzip_file(self, gz_file):
+        full_gz_file_path = os.path.join(self.directory, gz_file)
+        with open(full_gz_file_path, 'rb') as binary_file:
+            binary_data = binary_file.read()
+        response.headers['Content-Encoding'] = 'gzip'
+        response.headers['Content-Length'] = len(binary_data)
+        return binary_data
 
     def handle_dir(self, path):
         if os.path.isfile(os.path.join(path, 'index.html')):
@@ -186,6 +203,9 @@ class Sipper(Thread):
             html_model['file_details_json'] = json.dumps([detail.to_json() for detail in file_details_list])
 
         html = html.render(**html_model)
+        response.content_type = 'text/html'
+        if self.gzip:
+            html = apply_gzip(request=request, response=response, uncompressed_response=html)
         return html
 
     def build_template_file_path(self, template_file):
@@ -272,6 +292,10 @@ if __name__ == "__main__":
 
     parser.add_argument('-q', '--searchable', action='store_true', default=False, required=False,
                         help='Add search box to be able to search on files (Performs fuzzy search similar to fzf tool).')
+    parser.add_argument('-g', '--gzip', action='store_true', default=False, required=False,
+                        help='When enabled, it will server some-file.js.gz file in place of some-file.js when a '
+                             'gzipped version of the file exists and the request accepts gzip encoding.'
+                             ' Also applies gzip to the directory listing response.')
 
     parser.add_argument('directory')
 
@@ -298,7 +322,8 @@ if __name__ == "__main__":
                     ssl_enabled=args.ssl_enabled,
                     ssl_cert=args.cert,
                     ssl_key=args.key,
-                    searchable=args.searchable)
+                    searchable=args.searchable,
+                    gzip=args.gzip)
     get('<url_path:path>')(sipper.serve)
 
     print('Starting up bottle-sipper, serving %s' % sipper.directory)
