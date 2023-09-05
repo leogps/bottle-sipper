@@ -47,7 +47,8 @@ class Sipper(Thread):
                  ssl_cert=None,
                  ssl_key=None,
                  searchable=False,
-                 gzip=False):
+                 gzip=False,
+                 silent=False):
         Thread.__init__(self)
         directory = handle_shortcut_symbols(directory)
         self.directory = directory
@@ -86,6 +87,7 @@ class Sipper(Thread):
                 self.template_base_dir = existing_template.path
         self.searchable = searchable
         self.gzip = gzip
+        self.silent = silent
 
     def get_server_address(self):
         host = request.get_header('Host')
@@ -220,7 +222,8 @@ class Sipper(Thread):
                                      port=port,
                                      ssl_enabled=ssl_enabled,
                                      ssl_cert=ssl_cert,
-                                     ssl_key=ssl_key)
+                                     ssl_key=ssl_key,
+                                     silent=self.silent)
         self.servers.append(server)
         self.server_port = port
         print("Bottle v%s server starting up (using %s)...\n" % (bottle_version, repr(server)))
@@ -296,6 +299,8 @@ if __name__ == "__main__":
                         help='When enabled, it will server some-file.js.gz file in place of some-file.js when a '
                              'gzipped version of the file exists and the request accepts gzip encoding.'
                              ' Also applies gzip to the directory listing response.')
+    parser.add_argument('-s', '--silent', action='store_true', default=False, required=False,
+                        help='Suppress log messages from output')
 
     parser.add_argument('directory')
 
@@ -323,7 +328,8 @@ if __name__ == "__main__":
                     ssl_cert=args.cert,
                     ssl_key=args.key,
                     searchable=args.searchable,
-                    gzip=args.gzip)
+                    gzip=args.gzip,
+                    silent=args.silent)
     get('<url_path:path>')(sipper.serve)
 
     print('Starting up bottle-sipper, serving %s' % sipper.directory)

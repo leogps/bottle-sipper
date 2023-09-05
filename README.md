@@ -55,6 +55,7 @@ https://github.com/http-party/http-server | https://www.npmjs.com/package/http-s
     -q, --searchable      Add search box to be able to search on files (Performs fuzzy search similar to fzf tool).
     -g, --gzip            When enabled, it will server some-file.js.gz file in place of some-file.js when a gzipped version of the file exists and the request accepts gzip encoding.
                           Also applies gzip to the directory listing response.
+    -s, --silent          Suppress log messages from output
 
     auth-options:
     -u USERNAME, --username USERNAME
