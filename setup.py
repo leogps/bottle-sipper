@@ -20,10 +20,14 @@ setup(
     },
     package_data={
         "sipper_core.templates.default": [
-          "*.tpl"
+          "*.tpl",
+          "*.html",
+          "*.js"
         ],
         "sipper_core.templates.media": [
-            "*.tpl"
+            "*.tpl",
+            "*.html",
+            "*.js"
         ],
         "static": ["*.json"],
         "test": [

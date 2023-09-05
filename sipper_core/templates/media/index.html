@@ -58,6 +58,9 @@
 
         .details {
             flex-grow: 1;
+            text-align: left;
+            width: 80%;
+            overflow: overlay;
         }
 
         h2 {
@@ -91,14 +94,6 @@
                 margin-right: 0;
                 margin-bottom: 10px;
             }
-
-            .details {
-                text-align: left;
-            }
-
-            h2 {
-                font-size: 18px;
-            }
         }
 
         div.icon i.file {
@@ -120,6 +115,16 @@
           bottom: 0;
           padding: 10px;
         }
+        #progress-bar {
+          width: 100%;
+          height: 4px;
+          background-color: #0074d9;
+          position: fixed;
+          top: 0;
+          left: 0;
+          z-index: 1000; /* Ensure it's above other content */
+          display: none; /* Initially hidden */
+        }
     </style>
 </head>
 <body>
@@ -131,11 +136,12 @@
                 <input id="search" type="text" name="search" placeholder="Search..." />
                 <span class="clear-icon" id="clearInput">✕</span>
             </div>
+            <div id="progress-bar"></div>
         </div>
         % end
 
         % import os
-        % row_template_file = os.path.join(template_base_dir, 'row.tpl')
+        % row_template_file = os.path.join(template_base_dir, 'row.html')
         % for file_details in file_details_list:
           % include(row_template_file)
         % end
@@ -146,7 +152,7 @@
 
     % if searchable:
     % import os
-    % search_template_file = os.path.join(template_base_dir, 'search.tpl')
+    % search_template_file = os.path.join(template_base_dir, 'search.html')
     % include(search_template_file)
     % end
 </body>

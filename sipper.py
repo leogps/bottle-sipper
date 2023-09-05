@@ -167,7 +167,7 @@ class Sipper(Thread):
                                        file_name=f)
             file_details_list.append(file_details)
 
-        html = SimpleTemplate(name=self.build_template_file_path('index.tpl'))
+        html = SimpleTemplate(name=self.build_template_file_path('index.html'))
         index_of = path.replace(self.directory, '', 1)
 
         html_model = {

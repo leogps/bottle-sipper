@@ -1,7 +1,9 @@
 % import os
-% fzf_js = os.path.join(template_base_dir, 'fzf.umd.js.tpl')
+% fzf_js = os.path.join(template_base_dir, 'fzf.umd.js')
+% debounce_js = os.path.join(template_base_dir, 'debounce.js')
 <script>
     % include(fzf_js)
+    % include(debounce_js)
 </script>
 
 <script>
@@ -14,6 +16,7 @@
     const fuzzySearch = new fzf.Fzf(fileDetailsList, {
         selector: (item) => item.fileName
     });
+    const progressBar = document.querySelector("#progress-bar");
 
     // Loading elements into memory
     const dataRowsParent = document.getElementsByClassName("file-list")[0];
@@ -67,11 +70,22 @@
             dataRowsParent.appendChild(fragment);
     }
 
+    function handleInput(e) {
+      let searchQuery = this.value;
+      handleSearch(searchQuery);
+    }
+
+    function showProgressBar() {
+      progressBar.style.display = "block";
+    }
+
+    function hideProgressBar() {
+      progressBar.style.display = "none";
+    }
+
+    const debounceInput = debounce(handleInput, 300, showProgressBar, hideProgressBar);
     function registerSearch(input) {
-        input.addEventListener("input", function(e) {
-            let searchQuery = this.value;
-            handleSearch(searchQuery);
-        });
+        input.addEventListener("input", debounceInput);
     }
     registerSearch(searchField);
 
