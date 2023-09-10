@@ -15,6 +15,7 @@ permissions:
 jobs:
   build-linux-x64:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python
@@ -35,6 +36,7 @@ jobs:
 
   build-windows-x64:
     runs-on: windows-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
@@ -55,6 +57,7 @@ jobs:
 
   build-macos-x64:
     runs-on: macos-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
@@ -76,6 +79,7 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     needs: [build-linux-x64, build-windows-x64, build-macos-x64]
     steps:
       - name: Download Linux Artifacts
@@ -133,10 +137,23 @@ jobs:
         run: |
           cd ${{ github.workspace }}
           cd dist
-          md5sum * > MD5SUMS
-          sha1sum * > SHA1SUMS
-          sha256sum * > SHA256SUMS
-          sha512sum * > SHA512SUMS
+          declare -A checksum_algorithm_files
+          checksum_algorithm_files["md5sum"]="MD5SUMS"
+          checksum_algorithm_files["sha1sum"]="SHA1SUMS"
+          checksum_algorithm_files["sha256sum"]="SHA256SUMS"
+          checksum_algorithm_files["sha512sum"]="SHA512SUMS"
+          for folder in dist-linux dist-windows dist-macos; 
+            do  
+              for file in "$folder"/*; 
+          	  do
+          	    echo "calculating checksum for $file..."
+          	    for algo in "${!checksum_algorithm_files[@]}"; do
+          		  checksum_file="${checksum_algorithm_files[$algo]}"
+          		  echo "Algorithm: $algo, Checksum file: $checksum_file"
+          		  $algo "$file" | awk '{gsub(".*/", "", $2); print $1, $2}' >> "$checksum_file";
+          		done
+          	done; 
+          done
 
       - name: Create Release
         id: create_release
