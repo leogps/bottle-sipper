@@ -15,6 +15,7 @@ permissions:
 jobs:
   build-linux-x64:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python
@@ -35,6 +36,7 @@ jobs:
 
   build-windows-x64:
     runs-on: windows-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
@@ -55,6 +57,7 @@ jobs:
 
   build-macos-x64:
     runs-on: macos-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
@@ -76,6 +79,7 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     needs: [build-linux-x64, build-windows-x64, build-macos-x64]
     steps:
       - name: Download Linux Artifacts
