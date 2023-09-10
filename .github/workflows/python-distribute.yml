@@ -5,11 +5,9 @@ name: Build Python Distributable
 # Trigger the create release workflow
 on:
   workflow_run:
-    workflows: ["Upload Python Package"]
+    workflows: [Upload Python Package]
     types: 
       - completed
-    branches:
-      - 'release-**'
 
 permissions:
   contents: read
