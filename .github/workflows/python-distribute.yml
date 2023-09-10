@@ -6,9 +6,10 @@ name: Build Python Distributable
 on:
   workflow_run:
     workflows: ["Upload Python Package"]
-    types: [completed]
+    types: 
+      - completed
     branches:
-      - 'releases-**'
+      - 'release-**'
 
 permissions:
   contents: read
