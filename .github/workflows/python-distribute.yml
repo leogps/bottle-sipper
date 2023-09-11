@@ -8,8 +8,6 @@ on:
     workflows: [Upload Python Package]
     types: 
       - completed
-    branches:
-      - 'release/**'
 
 jobs:
   build-linux-x64:
