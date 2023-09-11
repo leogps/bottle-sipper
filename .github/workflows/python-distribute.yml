@@ -213,6 +213,7 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_name: MD5SUMS
           asset_path: dist/MD5SUMS
+          asset_content_type: text/plain
 
       - name: Upload SHA1SUMS
         uses: actions/upload-release-asset@v1
@@ -220,6 +221,7 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_name: SHA1SUMS
           asset_path: dist/SHA1SUMS
+          asset_content_type: text/plain
 
       - name: Upload SHA256SUMS
         uses: actions/upload-release-asset@v1
@@ -227,6 +229,7 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_name: SHA256SUMS
           asset_path: dist/SHA256SUMS
+          asset_content_type: text/plain
 
       - name: Upload SHA512SUMS
         uses: actions/upload-release-asset@v1
@@ -234,6 +237,7 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_name: SHA512SUMS
           asset_path: dist/SHA512SUMS
+          asset_content_type: text/plain
 
       - name: Set Release URL as Output
         id: set_release_url
