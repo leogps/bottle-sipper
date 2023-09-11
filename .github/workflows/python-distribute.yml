@@ -22,7 +22,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyinstaller
     - name: Build distributable
-      run: pyinstaller sipper.spec
+      run: pyinstaller sipper.py --clean --onefile --add-data sipper_core/templates/:sipper_core/templates/ --add-data static/:static/ --add-data sipper_core/:sipper_core/
     - name: Archive build artifacts
       uses: actions/upload-artifact@v3
       with:
@@ -42,7 +42,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller
       - name: Build distributable
-        run: pyinstaller sipper.spec
+        run: pyinstaller sipper.py --clean --onefile --add-data "sipper_core\templates\;sipper_core\templates\" --add-data "static\;static\" --add-data "sipper_core\;sipper_core\"
       - name: Archive build artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -62,7 +62,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller
       - name: Build distributable
-        run: pyinstaller sipper.spec
+        run: pyinstaller sipper.py --clean --onefile --add-data sipper_core/templates/:sipper_core/templates/ --add-data static/:static/ --add-data sipper_core/:sipper_core/
       - name: Archive build artifacts
         uses: actions/upload-artifact@v3
         with:
