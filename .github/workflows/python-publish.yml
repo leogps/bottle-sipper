@@ -13,6 +13,8 @@ on:
   push:
     tags:
       - 'v*'
+    branches:
+      - 'release/**'
 
 permissions:
   contents: read
