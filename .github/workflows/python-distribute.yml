@@ -6,7 +6,7 @@ name: Build Python Distributable
 on:
   push:
     tags:
-      - 'test/**'
+      - 'v*'
 
 jobs:
   build-linux-x64:
