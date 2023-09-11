@@ -14,6 +14,25 @@ https://github.com/http-party/http-server | https://www.npmjs.com/package/http-s
 
 ---
 
+### Installation
+
+Download executable for your platform here:
+
+* [Latest Release](https://github.com/leogps/bottle-sipper/releases/tag/exe_v0.1.21)
+
+Run
+
+  ```bash
+  sipper -q -g <directory-to-serve>
+  ```
+  or
+  ```bash
+  sipper -q -g -t media <directory-to-serve> # for media template.
+  ```
+
+  
+---
+
 ### Usage
 
     # Pip based installation:
