@@ -258,6 +258,8 @@ class Sipper(Thread):
             if t.path == self.template_base_dir:
                 config += '\n' + 'Template: ' + t.name
                 break
+        if self.silent:
+            config += '\n' + 'Silent: True'
         return config
 
 

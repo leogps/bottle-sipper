@@ -10,9 +10,8 @@ class SipperWSGIRefServer(ServerAdapter):
                  ssl_enabled=False,
                  ssl_cert=None,
                  ssl_key=None,
-                 silent=False,
-                 **options):
-        super().__init__(host, port, **options)
+                 silent=False):
+        super().__init__(host, port)
         self.ssl_enabled = ssl_enabled
         self.ssl_cert = ssl_cert
         self.ssl_key = ssl_key
@@ -20,14 +19,15 @@ class SipperWSGIRefServer(ServerAdapter):
 
     def run(self, handler):
         from wsgiref.simple_server import make_server, WSGIRequestHandler
-        if self.quiet:
-            class QuietHandler(WSGIRequestHandler):
-                if self.silent:
-                    def log_request(*arguments, **kw): pass
+
+        class QuietHandler(WSGIRequestHandler):
+            def log_request(*args, **kw):
+                if not self.silent:
+                    return WSGIRequestHandler.log_request(*args, **kw)
                 else:
                     pass
 
-            self.options['handler_class'] = QuietHandler
+        self.options['handler_class'] = QuietHandler
         self.server = make_server(self.host, self.port, handler, **self.options)
 
         if self.ssl_enabled:
