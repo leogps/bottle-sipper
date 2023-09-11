@@ -94,8 +94,13 @@ jobs:
           for file in *; do
             filename=$(basename -- "$file")
             extension="${filename##*.}"
+            if [ "$extension" = "$filename" ]; then
+              extension=""
+            else
+              extension=".$extension"
+            fi
             filename_without_extension="${filename%.*}"
-            new_filename="${filename_without_extension}-${suffix}.${extension}"
+            new_filename="${filename_without_extension}-${suffix}${extension}"
             mv "$file" "$new_filename"
           done
 
@@ -111,8 +116,13 @@ jobs:
           for file in *; do
             filename=$(basename -- "$file")
             extension="${filename##*.}"
+            if [ "$extension" = "$filename" ]; then
+              extension=""
+            else
+              extension=".$extension"
+            fi
             filename_without_extension="${filename%.*}"
-            new_filename="${filename_without_extension}-${suffix}.${extension}"
+            new_filename="${filename_without_extension}-${suffix}${extension}"
             mv "$file" "$new_filename"
           done
 
@@ -128,8 +138,13 @@ jobs:
           for file in *; do
             filename=$(basename -- "$file")
             extension="${filename##*.}"
+            if [ "$extension" = "$filename" ]; then
+              extension=""
+            else
+              extension=".$extension"
+            fi
             filename_without_extension="${filename%.*}"
-            new_filename="${filename_without_extension}-${suffix}.${extension}"
+            new_filename="${filename_without_extension}-${suffix}${extension}"
             mv "$file" "$new_filename"
           done
 
@@ -165,10 +180,64 @@ jobs:
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
-          files: |
-            dist/dist-linux/**
-            dist/dist-windows/**
-            dist/dist-macos/**
+
+      - name: Upload Release Asset for Linux
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/dist-linux/sipper-linux-x64
+          asset_name: sipper-linux-x64
+          asset_content_type: application/octet-stream
+
+      - name: Upload Release Asset for Windows
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/dist-windows/sipper-windows-x64.exe
+          asset_name: sipper-windows-x64.exe
+          asset_content_type: application/octet-stream
+
+      - name: Upload Release Asset for macOS
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/dist-macos/sipper-macos-x64.exe
+          asset_name: sipper-macos-x64
+          asset_content_type: application/octet-stream
+
+      - name: Upload MD5SUMS
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_name: MD5SUMS
+          asset_path: dist/MD5SUMS
+
+      - name: Upload SHA1SUMS
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_name: SHA1SUMS
+          asset_path: dist/SHA1SUMS
+
+      - name: Upload SHA256SUMS
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_name: SHA256SUMS
+          asset_path: dist/SHA256SUMS
+
+      - name: Upload SHA512SUMS
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_name: SHA512SUMS
+          asset_path: dist/SHA512SUMS
 
       - name: Set Release URL as Output
         id: set_release_url
