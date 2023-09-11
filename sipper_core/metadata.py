@@ -1,6 +1,6 @@
 __author__ = 'Paul Gundarapu'
 __author_email__ = 'leogps@outlook.com'
-__version__ = '0.1.18'
+__version__ = '0.1.19'
 __license__ = 'MIT'
 __description__ = 'Simple, zero-configuration command-line static HTTP server.'
 __long_description__ = """
