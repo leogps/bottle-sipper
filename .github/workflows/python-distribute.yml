@@ -11,9 +11,6 @@ on:
     branches:
       - 'release/**'
 
-permissions:
-  contents: read
-
 jobs:
   build-linux-x64:
     runs-on: ubuntu-latest
