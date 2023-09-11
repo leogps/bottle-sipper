@@ -27,6 +27,7 @@ jobs:
     - name: Build distributable
       run: |
         source .venv/bin/activate
+        python -m pip install -r requirements.txt
         pyinstaller sipper.py --clean --onefile --add-data sipper_core/templates/:sipper_core/templates/ --add-data static/:static/ --add-data sipper_core/:sipper_core/
         dist/sipper -h
     - name: Archive build artifacts
@@ -48,11 +49,12 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install virtualenv
           python -m virtualenv .venv
-          source .\.venv\Scripts\activate
+          .\.venv\Scripts\activate          
           python -m pip install pyinstaller
       - name: Build distributable
         run: |
           .\.venv\Scripts\activate
+          python -m pip install -r requirements.txt
           pyinstaller sipper.py --clean --onefile --add-data "sipper_core\templates\;sipper_core\templates\" --add-data "static\;static\" --add-data "sipper_core\;sipper_core\"
           .\dist\sipper.exe -h
       - name: Archive build artifacts
@@ -79,6 +81,7 @@ jobs:
       - name: Build distributable
         run: |
           source .venv/bin/activate
+          python -m pip install -r requirements.txt
           pyinstaller sipper.py --clean --onefile --add-data sipper_core/templates/:sipper_core/templates/ --add-data static/:static/ --add-data sipper_core/:sipper_core/
           dist/sipper -h
       - name: Archive build artifacts
