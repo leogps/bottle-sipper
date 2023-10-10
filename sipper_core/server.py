@@ -1,8 +1,7 @@
 from bottle import ServerAdapter
-import ssl
 
 
-class SipperWSGIRefServer(ServerAdapter):
+class SipperCherootServer(ServerAdapter):
     """ Custom WSGIRefServer implementation to accommodate shutdown, ssl etc. """
     server = None
 
@@ -18,30 +17,20 @@ class SipperWSGIRefServer(ServerAdapter):
         self.silent = silent
 
     def run(self, handler):
-        from wsgiref.simple_server import make_server, WSGIRequestHandler
+        from cheroot import wsgi
+        from cheroot.ssl import builtin
 
-        class QuietHandler(WSGIRequestHandler):
-            def log_request(*args, **kw):
-                if not self.silent:
-                    return WSGIRequestHandler.log_request(*args, **kw)
-                else:
-                    pass
+        self.options['bind_addr'] = (self.host, self.port)
+        self.options['wsgi_app'] = handler
 
-        self.options['handler_class'] = QuietHandler
-        self.server = make_server(self.host, self.port, handler, **self.options)
+        self.server = wsgi.Server(**self.options)
 
         if self.ssl_enabled:
             # Configure SSL context with certificates
-            ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-            ssl_context.load_cert_chain(certfile=self.ssl_cert, keyfile=self.ssl_key)
-
-            # Wrap the server with SSL/TLS context
-            self.server.socket = ssl_context.wrap_socket(
-                self.server.socket,
-                server_side=True
-            )
-        self.server.serve_forever()
+            self.server.ssl_adapter = builtin.BuiltinSSLAdapter(
+                self.ssl_cert, self.ssl_key)
+        self.server.start()
 
     def shutdown(self):
-        self.server.server_close()
-        self.server.shutdown()
+        self.server.stop()
+        self.server = None

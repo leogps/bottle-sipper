@@ -17,12 +17,13 @@ from argparse import ArgumentParser
 from datetime import datetime
 from threading import Thread
 from time import sleep
+from functools import wraps
 
 import ifaddr
-from bottle import get, run, static_file, request, response, HTTPResponse, SimpleTemplate
+from bottle import get, install, run, static_file, request, response, HTTPResponse, SimpleTemplate
 from bottle import __version__ as bottle_version
 
-from sipper_core.server import SipperWSGIRefServer
+from sipper_core.server import SipperCherootServer
 from sipper_core.auth import Authentication, BasicAuthentication
 from sipper_core.constants import get_icons, get_mime_extensions, YES, get_templates, get_default_template, \
     find_existing_template, \
@@ -33,6 +34,28 @@ from sipper_core.common import perms_to_string, sizeof_fmt, handle_shortcut_symb
     file_exists_and_is_file, FileDetails
 from sipper_core.compress import apply_gzip
 from sipper_core.metadata import __version__
+
+
+def access_logger(fn):
+    """
+    Wrap a Bottle request so that a log line is emitted after it's handled.
+    (This decorator can be extended to take the desired logger as a param.)
+    """
+    @wraps(fn)
+    def _access_logger(*argz, **kwargs):
+        request_time = datetime.now()
+        actual_response = fn(*argz, **kwargs)
+        log_format = '%s - - [%s] "%s %s" %s'
+        log_entry = log_format % (
+            request.remote_addr,
+            request_time.strftime('%d/%b/%Y:%H:%M:%S +0000'),
+            request.method,
+            request.url,
+            response.status
+        )
+        print(log_entry)
+        return actual_response
+    return _access_logger
 
 
 class Sipper(Thread):
@@ -218,7 +241,7 @@ class Sipper(Thread):
              ssl_cert=None,
              ssl_key=None):
         # print('Serving at http://{}:{}'.format(ip, port))
-        server = SipperWSGIRefServer(host=address,
+        server = SipperCherootServer(host=address,
                                      port=port,
                                      ssl_enabled=ssl_enabled,
                                      ssl_cert=ssl_cert,
@@ -229,6 +252,8 @@ class Sipper(Thread):
         print("Bottle v%s server starting up (using %s)...\n" % (bottle_version, repr(server)))
         protocol = 'https' if ssl_enabled else 'http'
         print("Starting server on %s://%s:%d/\n" % (protocol, server.host, server.port))
+        if not self.silent:
+            install(access_logger)
         run(quiet=True, server=server)
 
     def start_sipping(self, address, port):
