@@ -1,0 +1,6 @@
+recursive-include sipper_core *
+recursive-include static *
+recursive-include test *
+include LICENSE
+include README.md
+include requirements.txt
