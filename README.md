@@ -93,6 +93,7 @@ Run
   
     sipper = Sipper('<dir>')
     sipper.start_sipping('0.0.0.0', 8080)
+    sipper.await_sipping_complete() # Optionally, sipper.shutdown(wait_before_shutdown=600) to shutdown after 10min.
 
 ---
 
