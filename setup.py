@@ -1,3 +1,4 @@
+import os
 from distutils.core import setup
 from setuptools import find_packages
 
@@ -10,7 +11,8 @@ from sipper_core.metadata import __author_email__
 from sipper_core.metadata import read_file
 
 
-REQUIREMENTS = read_file('requirements.txt').splitlines()
+requirements_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'requirements.txt')
+REQUIREMENTS = read_file(requirements_file_path).splitlines()
 
 setup(
     name='bottle-sipper',
