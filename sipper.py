@@ -30,7 +30,7 @@ from sipper_core.constants import get_icons, get_mime_extensions, YES, get_templ
     get_python_version, \
     APP_NAME, \
     APP_LINK
-from sipper_core.common import perms_to_string, sizeof_fmt, handle_shortcut_symbols, build_icons, \
+from sipper_core.common import perms_to_string, sizeof_fmt, handle_windows_directory, build_icons, \
     file_exists_and_is_file, FileDetails
 from sipper_core.compress import apply_gzip
 from sipper_core.metadata import __version__
@@ -41,6 +41,7 @@ def access_logger(fn):
     Wrap a Bottle request so that a log line is emitted after it's handled.
     (This decorator can be extended to take the desired logger as a param.)
     """
+
     @wraps(fn)
     def _access_logger(*argz, **kwargs):
         request_time = datetime.now()
@@ -55,6 +56,7 @@ def access_logger(fn):
         )
         print(log_entry)
         return actual_response
+
     return _access_logger
 
 
@@ -73,7 +75,7 @@ class Sipper(Thread):
                  gzip=False,
                  silent=False):
         Thread.__init__(self)
-        directory = handle_shortcut_symbols(directory)
+        directory = handle_windows_directory(directory)
         self.directory = directory
         self.show_directory_listings = show_directory_listings
         self.authentication = auth
@@ -268,9 +270,17 @@ class Sipper(Thread):
         thread.start()
         self.threads.append(thread)
 
+    """
+        Waits on the server thread(s) to complete.
+    """
+    def await_sipping_complete(self):
+        if self.threads is not None:
+            for thread in self.threads:
+                thread.join()
+
     def shutdown(self, wait_before_shutdown=0):
-        print('Shutting down...')
         sleep(wait_before_shutdown)
+        print('Shutting down...')
         for server in self.servers:
             server.shutdown()
 
@@ -384,3 +394,4 @@ if __name__ == "__main__":
     else:
         sipper.start_sipping(args.address, args.port)
         pass
+    sipper.await_sipping_complete()

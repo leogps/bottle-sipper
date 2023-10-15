@@ -24,9 +24,12 @@ def sizeof_fmt(num, suffix="B"):
     return f"{num:.1f}Yi{suffix}"
 
 
-def handle_shortcut_symbols(directory):
-    if os.name == 'nt' and directory.startswith('~'):
-        return directory.replace('~', os.path.expanduser('~'), 1)
+def handle_windows_directory(directory):
+    if os.name == 'nt':
+        if directory.startswith('~'):
+            return directory.replace('~', os.path.expanduser('~'), 1)
+        if not directory.endswith('/'):
+            return directory + '/'
     return directory
 
 
