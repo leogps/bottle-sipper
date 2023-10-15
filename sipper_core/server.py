@@ -29,7 +29,10 @@ class SipperCherootServer(ServerAdapter):
             # Configure SSL context with certificates
             self.server.ssl_adapter = builtin.BuiltinSSLAdapter(
                 self.ssl_cert, self.ssl_key)
-        self.server.start()
+        try:
+            self.server.start()
+        finally:
+            self.server.stop()
 
     def shutdown(self):
         self.server.stop()

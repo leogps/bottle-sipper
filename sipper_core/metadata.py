@@ -13,3 +13,8 @@ Homepage and documentation: https://github.com/leogps/bottle-sipper
 
 Copyright (c) 2023, Paul Gundarapu. License: MIT (see LICENSE for details)
 """
+
+
+def read_file(name):
+    with open(name, encoding='utf-8') as f:
+        return f.read()

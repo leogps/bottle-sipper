@@ -257,6 +257,7 @@ class Sipper(Thread):
         run(quiet=True, server=server)
 
     def start_sipping(self, address, port):
+        get('<url_path:path>')(self.serve)
         thread = Thread(target=self._run, kwargs={
             'address': address,
             'port': port,
@@ -357,7 +358,6 @@ if __name__ == "__main__":
                     searchable=args.searchable,
                     gzip=args.gzip,
                     silent=args.silent)
-    get('<url_path:path>')(sipper.serve)
 
     print('Starting up bottle-sipper, serving %s' % sipper.directory)
     print('')

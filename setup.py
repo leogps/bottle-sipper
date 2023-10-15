@@ -7,7 +7,10 @@ from sipper_core.metadata import __description__
 from sipper_core.metadata import __long_description__
 from sipper_core.metadata import __author__
 from sipper_core.metadata import __author_email__
+from sipper_core.metadata import read_file
 
+
+REQUIREMENTS = read_file('requirements.txt').splitlines()
 
 setup(
     name='bottle-sipper',
@@ -50,11 +53,8 @@ setup(
               'file',
               'server',
               'http-server'],
-    install_requires=[
-        'bottle>=0.12.23',
-        'argparse>=1.4.0',
-        'ifaddr>=0.2.0'
-    ],
+    install_requires=REQUIREMENTS,
+    python_requires='>=3.4',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
