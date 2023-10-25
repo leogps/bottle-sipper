@@ -73,7 +73,8 @@ class Sipper(Thread):
                  ssl_key=None,
                  searchable=False,
                  gzip=False,
-                 silent=False):
+                 silent=False,
+                 num_of_worker_threads=10):
         Thread.__init__(self)
         directory = handle_windows_directory(directory)
         self.directory = directory
@@ -113,6 +114,7 @@ class Sipper(Thread):
         self.searchable = searchable
         self.gzip = gzip
         self.silent = silent
+        self.num_of_worker_threads = num_of_worker_threads
 
     def get_server_address(self):
         host = request.get_header('Host')
@@ -248,7 +250,8 @@ class Sipper(Thread):
                                      ssl_enabled=ssl_enabled,
                                      ssl_cert=ssl_cert,
                                      ssl_key=ssl_key,
-                                     silent=self.silent)
+                                     silent=self.silent,
+                                     numthreads=self.num_of_worker_threads)
         self.servers.append(server)
         self.server_port = port
         print("Bottle v%s server starting up (using %s)...\n" % (bottle_version, repr(server)))
@@ -339,6 +342,8 @@ if __name__ == "__main__":
                              ' Also applies gzip to the directory listing response.')
     parser.add_argument('-s', '--silent', action='store_true', default=False, required=False,
                         help='Suppress log messages from output')
+    parser.add_argument('-w', '--num-of-worker-threads', type=int, default=10, required=False,
+                        help='Set number of server worker threads. Default is 10.')
 
     parser.add_argument('directory')
 
@@ -367,7 +372,8 @@ if __name__ == "__main__":
                     ssl_key=args.key,
                     searchable=args.searchable,
                     gzip=args.gzip,
-                    silent=args.silent)
+                    silent=args.silent,
+                    num_of_worker_threads=args.num_of_worker_threads)
 
     print('Starting up bottle-sipper, serving %s' % sipper.directory)
     print('')

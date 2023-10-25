@@ -9,11 +9,13 @@ class SipperCherootServer(ServerAdapter):
                  ssl_enabled=False,
                  ssl_cert=None,
                  ssl_key=None,
+                 numthreads=10,
                  silent=False):
         super().__init__(host, port)
         self.ssl_enabled = ssl_enabled
         self.ssl_cert = ssl_cert
         self.ssl_key = ssl_key
+        self.numthreads = numthreads
         self.silent = silent
 
     def run(self, handler):
@@ -22,6 +24,7 @@ class SipperCherootServer(ServerAdapter):
 
         self.options['bind_addr'] = (self.host, self.port)
         self.options['wsgi_app'] = handler
+        self.options['numthreads'] = self.numthreads
 
         self.server = wsgi.Server(**self.options)
 
