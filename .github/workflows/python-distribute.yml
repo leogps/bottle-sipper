@@ -2,7 +2,7 @@
 # makes it available under Github releases
 name: Build Python Distributable
 
-# Trigger the create release workflow
+# Trigger the release workflow
 on:
   push:
     tags:
@@ -42,11 +42,11 @@ jobs:
           python-version: '3.10'
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
+          python.exe -m pip install --upgrade pip
       - name: Build distributable
         run: |
-          pip install pyinstaller
-          pip install -r requirements.txt
+          python.exe -m pip install pyinstaller
+          python.exe -m pip install -r requirements.txt
           pyinstaller sipper.py --clean --onefile --add-data "sipper_core\templates\;sipper_core\templates\" --add-data "static\;static\" --add-data "sipper_core\;sipper_core\" --collect-submodules pkg_resources
           .\dist\sipper.exe -h
       - name: Archive build artifacts
