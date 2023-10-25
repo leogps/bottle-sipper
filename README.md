@@ -75,6 +75,8 @@ Run
     -g, --gzip            When enabled, it will server some-file.js.gz file in place of some-file.js when a gzipped version of the file exists and the request accepts gzip encoding.
                           Also applies gzip to the directory listing response.
     -s, --silent          Suppress log messages from output
+    -w NUM_OF_WORKER_THREADS, --num-of-worker-threads NUM_OF_WORKER_THREADS
+                          Set number of server worker threads. Default is 10.
 
     auth-options:
     -u USERNAME, --username USERNAME
