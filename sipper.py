@@ -13,6 +13,7 @@ Copyright (c) 2023, Paul Gundarapu. License: MIT (see LICENSE for details)
 import json
 import os
 import pathlib
+import sys
 from argparse import ArgumentParser
 from datetime import datetime
 from threading import Thread
@@ -36,6 +37,10 @@ from sipper_core.compress import apply_gzip
 from sipper_core.metadata import __version__
 
 
+def is_stdout_buffered():
+    return not sys.stdout.isatty()
+
+
 def access_logger(fn):
     """
     Wrap a Bottle request so that a log line is emitted after it's handled.
@@ -55,6 +60,8 @@ def access_logger(fn):
             response.status
         )
         print(log_entry)
+        if is_stdout_buffered:
+            sys.stdout.flush()
         return actual_response
 
     return _access_logger
@@ -260,6 +267,8 @@ class Sipper(Thread):
         if not self.silent:
             install(access_logger)
         run(quiet=True, server=server)
+        if is_stdout_buffered:
+            sys.stdout.flush()
 
     def start_sipping(self, address, port):
         get('<url_path:path>')(self.serve)
@@ -276,6 +285,7 @@ class Sipper(Thread):
     """
         Waits on the server thread(s) to complete.
     """
+
     def await_sipping_complete(self):
         if self.threads is not None:
             for thread in self.threads:
@@ -400,4 +410,4 @@ if __name__ == "__main__":
     else:
         sipper.start_sipping(args.address, args.port)
         pass
-    sipper.await_sipping_complete()
+    # sipper.await_sipping_complete()
