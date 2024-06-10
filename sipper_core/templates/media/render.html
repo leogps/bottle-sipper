@@ -1,0 +1,169 @@
+<div id="slideshow-modal" class="slideshow-modal">
+    <div id="slideshow-container" class="slideshow-container">
+        <div id="slideshow-content" class="slideshow-content"></div>
+        <button class="prev" onclick="changeSlide(-1)">&#10094;</button>
+        <button class="next" onclick="changeSlide(1)">&#10095;</button>
+        <button class="close" onclick="closeSlideshow()">&#10006;</button>
+    </div>
+</div>
+
+<style>
+  #slideshow-modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.9);
+      justify-content: center;
+      align-items: center;
+  }
+
+  .slideshow-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+  }
+
+  .slideshow-content {
+      max-width: 90%;
+      max-height: 90%;
+  }
+
+  .slideshow-content img, .slideshow-content video {
+      width: 100%;
+      height: auto;
+      display: none;
+  }
+
+  button.prev, button.next, button.close {
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: none;
+      padding: 10px;
+      cursor: pointer;
+      z-index: 2;
+  }
+
+  button.prev {
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+  }
+
+  button.next {
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+  }
+
+  button.close {
+      top: 10px;
+      right: 10px;
+  }
+
+  button#playMediaBtn {
+    cursor: pointer;
+    width: 100%;
+    margin-bottom: 20px;
+    padding: 10px;
+    display: inline-block;
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+    background-color: #3086e3;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+</style>
+
+<script>
+  let currentIndex = 0;
+  let slideshowRunning = false;
+
+  function showSlide(index) {
+      const slideshowContent = document.getElementById('slideshow-content');
+      const file = fileDetailsList[index];
+      const isImage = file.mimetype.startsWith('image/');
+      const isVideo = file.mimetype.startsWith('video/');
+      const isAudio = file.mimetype.startsWith('audio');
+
+      slideshowContent.innerHTML = '';
+
+      if (file.isDir) {
+        const directory = document.createElement('div');
+        directory.innerHTML = '&#128194; ' + file.fileName;
+        directory.style.color = "#fff";
+        slideshowContent.appendChild(directory);
+      } else {
+        if (isImage) {
+            const img = document.createElement('img');
+            img.src = file.fileLink;
+            img.alt = file.fileName;
+            slideshowContent.appendChild(img);
+        } else if (isVideo || isAudio) {
+            const video = document.createElement('video');
+            video.src = file.fileLink;
+            video.controls = true;
+            slideshowContent.appendChild(video);
+        } else {
+          const obj = document.createElement('object');
+          obj.data = file.fileLink;
+          obj.type = file.mimetype;
+          slideshowContent.appendChild(obj);
+        }
+      }
+
+      const elements = slideshowContent.children;
+      if (elements.length > 0) {
+          elements[0].style.display = 'block';
+      }
+      slideshowRunning = true;
+  }
+
+  function changeSlide(direction) {
+      currentIndex += direction;
+      if (currentIndex < 0) {
+          currentIndex = fileDetailsList.length - 1;
+      } else if (currentIndex >= fileDetailsList.length) {
+          currentIndex = 0;
+      }
+      showSlide(currentIndex);
+  }
+
+  function playMediaAt(event) {
+    event.stopPropagation();
+    const element = event.currentTarget;
+    const rowIndexStr = element.querySelector('button.play-file').getAttribute('row-index');
+    currentIndex = parseInt(rowIndexStr);
+    playMedia();
+  }
+
+  function playMedia() {
+      document.getElementById('slideshow-modal').style.display = 'flex';
+      showSlide(currentIndex);
+  }
+
+  function closeSlideshow() {
+      document.getElementById('slideshow-modal').style.display = 'none';
+      slideshowRunning = false;
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+      // Event listener for Escape key on slideshow modal
+      document.addEventListener('keydown', function(event) {
+          if (slideshowRunning && event.key === 'Escape') {
+              closeSlideshow();
+          }
+      });
+  });
+</script>

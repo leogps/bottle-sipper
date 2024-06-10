@@ -181,15 +181,19 @@ class Sipper(Thread):
         file_details_list = []
         icons = build_icons()
         icons_json = get_icons()
+        mime_type_extensions = get_mime_extensions()
         for f in dir_list:
             file_path = os.path.join(path, f)
 
             icon_style_class = '_blank'
+            mime_type = ''
             if os.path.isfile(file_path):
                 extension = pathlib.Path(file_path).suffix
                 ext = extension.lower().replace('.', '')
                 if ext in icons_json:
                     icon_style_class = ext
+                if ext in mime_type_extensions:
+                    mime_type = mime_type_extensions[ext]
             file_details_file_icon_base64 = icons_json[icon_style_class]
 
             last_modified = os.path.getmtime(file_path)
@@ -217,7 +221,8 @@ class Sipper(Thread):
                                        file_permissions=file_permissions,
                                        file_size=size_formatted,
                                        file_link=link_path,
-                                       file_name=f)
+                                       file_name=f,
+                                       mimetype=mime_type)
             file_details_list.append(file_details)
 
         html = SimpleTemplate(name=self.build_template_file_path('index.html'))

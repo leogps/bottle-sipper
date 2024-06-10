@@ -61,7 +61,8 @@ class FileDetails:
                  file_permissions,
                  file_size,
                  file_link,
-                 file_name):
+                 file_name,
+                 mimetype):
         self.is_dir = is_dir
         self.file_icon_style_class = file_icon_style_class
         self.file_icon_base64 = file_icon_base64
@@ -70,6 +71,7 @@ class FileDetails:
         self.file_size = file_size
         self.file_link = file_link
         self.file_name = file_name
+        self.mimetype = mimetype
         b = ':'.join([
             self.file_name,
             str(self.is_dir),
@@ -90,5 +92,6 @@ class FileDetails:
             "filePermissions": self.file_permissions,
             "fileSize": self.file_size,
             "fileLink": self.file_link,
-            "fileName": self.file_name
+            "fileName": self.file_name,
+            "mimetype": self.mimetype
         }

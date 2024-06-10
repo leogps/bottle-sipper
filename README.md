@@ -126,7 +126,8 @@ Run
                 "filePermissions": "<file_permissions_formatted>",
                 "fileSize": "<file_size_formatted>",
                 "fileLink": "<file_url>",
-                "fileName": "<file_name>"
+                "fileName": "<file_name>",
+                "mimetype": "<mimetype>,
             }
           }],
           "icons": [{

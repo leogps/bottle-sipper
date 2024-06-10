@@ -43,6 +43,14 @@
             background-color: #8AB4F8;
         }
 
+        div.file-link-container {
+          width: 100%;
+        }
+
+        div.row-container {
+          display: flex;
+        }
+
         div.icon {
             width: 80px;
             height: 80px;
@@ -54,6 +62,32 @@
             border-radius: 50%;
             margin-right: 10px;
             background-color: #cfcfcf;
+        }
+
+        div.play-file-div { 
+            width: 80px;
+            margin-bottom: 10px;
+            margin-right: 10px;
+            font-size: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: space-around;
+            justify-content: space-evenly;
+            color: #fff;
+            background-color: #3086e3;
+            border: none;
+            cursor: pointer;
+            justify-content: center;
+        }
+        button.play-file {
+          cursor: pointer;
+          background-color: inherit;
+          color: #fff;
+          border: 1px solid white;
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          font-size: 25px;
         }
 
         .details {
@@ -140,9 +174,15 @@
         </div>
         % end
 
+        <div>
+          <button id="playMediaBtn" onclick="playMedia()">
+            &#9654; Play Media
+          </button>
+        </div>
+
         % import os
         % row_template_file = os.path.join(template_base_dir, 'row.html')
-        % for file_details in file_details_list:
+        % for row_index,file_details in enumerate(file_details_list):
           % include(row_template_file)
         % end
     </div>
@@ -155,5 +195,8 @@
     % search_template_file = os.path.join(template_base_dir, 'search.html')
     % include(search_template_file)
     % end
+
+    % render_template_file = os.path.join(template_base_dir, 'render.html')
+    % include(render_template_file)
 </body>
 </html>
