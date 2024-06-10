@@ -64,7 +64,7 @@
             background-color: #cfcfcf;
         }
 
-        div.play-file-div { 
+        div.play-file-div {
             width: 80px;
             margin-bottom: 10px;
             margin-right: 10px;
@@ -190,6 +190,18 @@
         Python {{python_version}}/ <a href="{{app_link}}">{{app_name}} ({{app_version}})</a> server running @ {{server_address}}
     </div>
 
+    <script>
+        const fileDetailsList = {{!file_details_json}};
+        let filtered = false;
+        let fileDetailsSearchResults = [];
+
+        function getEffectiveFileDetailsList() {
+            if (filtered) {
+                return fileDetailsSearchResults;
+            }
+            return fileDetailsList;
+        }
+    </script>
     % if searchable:
     % import os
     % search_template_file = os.path.join(template_base_dir, 'search.html')

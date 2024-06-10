@@ -238,10 +238,9 @@ class Sipper(Thread):
             'app_version': __version__,
             'app_link': APP_LINK,
             'server_address': self.get_server_address(),
-            'searchable': self.searchable
+            'searchable': self.searchable,
+            'file_details_json': json.dumps([detail.to_json() for detail in file_details_list])
         }
-        if self.searchable:
-            html_model['file_details_json'] = json.dumps([detail.to_json() for detail in file_details_list])
 
         html = html.render(**html_model)
         response.content_type = 'text/html'

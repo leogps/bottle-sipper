@@ -7,12 +7,6 @@
 </script>
 
 <script>
-    % if file_details_json:
-        const fileDetailsList = {{!file_details_json}};
-    % else:
-        const fileDetailsList = [];
-    % end
-
     const fuzzySearch = new fzf.Fzf(fileDetailsList, {
         selector: (item) => item.fileName
     });
@@ -20,7 +14,7 @@
 
     // Loading elements into memory
     const dataRowsParent = document.getElementsByClassName("file-list")[0];
-    const dataRows = dataRowsParent.getElementsByClassName("data-row");
+    const dataRows = dataRowsParent.getElementsByClassName("row-container");
     const fragment = document.createDocumentFragment();
     const originalElements = new Map();
     for (let i = 0; i < dataRows.length; i++) {
@@ -30,7 +24,7 @@
     }
 
     function removeAllRows() {
-        const rows = dataRowsParent.getElementsByClassName("data-row");
+        const rows = dataRowsParent.getElementsByClassName("row-container");
         for(let i = rows.length - 1; i >= 0; i--) {
             const row = rows[i];
             row.parentNode.removeChild(row);
@@ -43,6 +37,8 @@
             fragment.appendChild(element);
         }
         dataRowsParent.appendChild(fragment);
+        filtered = false;
+        fileDetailsSearchResults = [];
     }
 
     const searchField = document.getElementById("search")
@@ -55,19 +51,24 @@
 
     function handleSearch(searchQuery) {
         clearIcon.style.display = searchQuery.length ? "block" : "none";
-            if (!searchQuery) {
-                clearSearch();
-                return false;
-            }
-            let matches = fuzzySearch.find(searchQuery);
-            for (const match of matches) {
-                const obj = match.item;
-                const hash = obj.hash;
-                const element = originalElements.get(hash);
-                fragment.appendChild(element);
-            }
-            removeAllRows();
-            dataRowsParent.appendChild(fragment);
+        fileDetailsSearchResults = [];
+        if (!searchQuery) {
+            clearSearch();
+            return false;
+        }
+        let matches = fuzzySearch.find(searchQuery);
+        let index = 0;
+        for (const match of matches) {
+            const obj = match.item;
+            fileDetailsSearchResults[index] = obj;
+            const hash = obj.hash;
+            const element = originalElements.get(hash);
+            fragment.appendChild(element);
+            index++;
+        }
+        removeAllRows();
+        dataRowsParent.appendChild(fragment);
+        filtered = true;
     }
 
     function handleInput(e) {

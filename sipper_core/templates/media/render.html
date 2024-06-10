@@ -97,7 +97,8 @@
 
   function showSlide(index) {
       const slideshowContent = document.getElementById('slideshow-content');
-      const file = fileDetailsList[index];
+      const effectiveFileDetailsList = getEffectiveFileDetailsList();
+      const file = effectiveFileDetailsList[index];
       const isImage = file.mimetype.startsWith('image/');
       const isVideo = file.mimetype.startsWith('video/');
       const isAudio = file.mimetype.startsWith('audio');
@@ -137,9 +138,10 @@
 
   function changeSlide(direction) {
       currentIndex += direction;
+      const effectiveFileDetailsList = getEffectiveFileDetailsList();
       if (currentIndex < 0) {
-          currentIndex = fileDetailsList.length - 1;
-      } else if (currentIndex >= fileDetailsList.length) {
+          currentIndex = effectiveFileDetailsList.length - 1;
+      } else if (currentIndex >= effectiveFileDetailsList.length) {
           currentIndex = 0;
       }
       showSlide(currentIndex);
@@ -155,6 +157,9 @@
 
   function playMedia() {
       document.getElementById('slideshow-modal').style.display = 'flex';
+      if (currentIndex >= getEffectiveFileDetailsList().length) {
+          currentIndex = 0;
+      }
       showSlide(currentIndex);
   }
 

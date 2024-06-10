@@ -1,11 +1,11 @@
-<div class="row-container">
+<div id="{{ file_details.hash }}" class="row-container">
   <div class="play-file-div" onclick="playMediaAt(event);">
     <button class="play-file" row-index="{{ row_index }}" file-hash="{{ file_details.hash }}" id="play_{{ file_details.hash }}">
       &#9654;
    </button>
   </div>
   <div class="file-link-container">
-    <a id="{{ file_details.hash }}" class="data-row" href="{{ file_details.file_link }}">
+    <a id="file_link_{{ file_details.hash }}" class="data-row" href="{{ file_details.file_link }}">
       <div class="card" >
            <div class="icon">
                % if file_details.is_dir:
