@@ -225,7 +225,7 @@ class Sipper(Thread):
                                        mimetype=mime_type)
             file_details_list.append(file_details)
 
-        html = SimpleTemplate(name=self.build_template_file_path('index.html'))
+        html = SimpleTemplate(name='index.html', lookup=[self.template_base_dir])
         index_of = path.replace(self.directory, '', 1)
 
         html_model = {

@@ -180,10 +180,8 @@
           </button>
         </div>
 
-        % import os
-        % row_template_file = os.path.join(template_base_dir, 'row.html')
         % for row_index,file_details in enumerate(file_details_list):
-          % include(row_template_file)
+          % include('row.html')
         % end
     </div>
     <div class="footer">
@@ -203,12 +201,9 @@
         }
     </script>
     % if searchable:
-    % import os
-    % search_template_file = os.path.join(template_base_dir, 'search.html')
-    % include(search_template_file)
+        % include('search.html')
     % end
 
-    % render_template_file = os.path.join(template_base_dir, 'render.html')
-    % include(render_template_file)
+    % include('render.html')
 </body>
 </html>

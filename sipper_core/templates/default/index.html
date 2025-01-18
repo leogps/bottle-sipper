@@ -50,10 +50,8 @@
             % end
             <table class="data-table">
               <tbody>
-                % import os
-                % row_template_file = os.path.join(template_base_dir, 'row.html')
                 % for file_details in file_details_list:
-                    % include(row_template_file)
+                    % include('row.html')
                 % end
               </tbody>
             </table>
@@ -62,9 +60,7 @@
             </div>
 
             % if searchable:
-              % import os
-              % search_template_file = os.path.join(template_base_dir, 'search.html')
-              % include(search_template_file)
+              % include('search.html')
             % end
         </body>
     </html>

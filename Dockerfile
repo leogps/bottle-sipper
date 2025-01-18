@@ -1,14 +1,14 @@
-FROM python:3.11.9-bullseye as builder
+FROM python:3.11.11-bullseye AS builder
 
 WORKDIR /usr/src/app
 
 COPY . .
 
-RUN pip install --upgrade pip
-RUN pip install pyinstaller
-RUN pip install -r requirements.txt
-RUN pyinstaller sipper.py --clean --onefile --add-data sipper_core/templates/:sipper_core/templates/ --add-data static/:static/ --add-data sipper_core/:sipper_core/ --collect-submodules pkg_resources
-RUN dist/sipper -h
+RUN pip install --upgrade pip && \
+    pip install pyinstaller && \
+    pip install -r requirements.txt && \
+    pyinstaller sipper.py --clean --onefile --add-data sipper_core/templates/:sipper_core/templates/ --add-data static/:static/ --add-data sipper_core/:sipper_core/ --collect-submodules pkg_resources && \
+    dist/sipper -h
 
 FROM ubuntu:oracular
 
