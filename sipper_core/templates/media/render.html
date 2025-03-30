@@ -1,9 +1,12 @@
 <div id="slideshow-modal" class="slideshow-modal">
     <div id="slideshow-container" class="slideshow-container">
+        <!-- Spinner will appear here when loading -->
+        <div id="loading-spinner" class="loading-spinner" style="display: none;"></div>
         <div id="slideshow-content" class="slideshow-content"></div>
         <button class="prev" onclick="changeSlide(-1)">&#10094;</button>
         <button class="next" onclick="changeSlide(1)">&#10095;</button>
-        <button class="close" onclick="closeSlideshow()">&#10006;</button>
+        <button class="close" onclick="closeSlideshow()">&#x2717;</button>
+        <button class="fullscreen" onclick="toggleFullscreen()">&#x26F6;</button> <!-- Fullscreen icon -->
     </div>
 </div>
 
@@ -19,6 +22,7 @@
       background-color: rgba(0, 0, 0, 0.9);
       justify-content: center;
       align-items: center;
+      touch-action: none;
   }
 
   .slideshow-container {
@@ -46,6 +50,25 @@
       max-height: 100%;
   }
 
+  #loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      margin-top: -25px;
+      margin-left: -25px;
+  }
+
+  @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+  }
+
   button.prev, button.next, button.close {
       position: absolute;
       background-color: rgba(0, 0, 0, 0.5);
@@ -69,8 +92,47 @@
   }
 
   button.close {
+      top: 14px;
+      right: 14px;
+  }
+
+  button.fullscreen {
+      position: absolute;
       top: 10px;
-      right: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: none;
+      padding: 12px;  /* Adjust padding for consistent size */
+      cursor: pointer;
+      z-index: 2;
+      font-size: 18px;
+      border-radius: 50%; /* Ensure it stays circular */
+      width: 40px;   /* Set a fixed width */
+      height: 40px;  /* Set a fixed height equal to width */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+  }
+
+  button.prev:hover, button.next:hover, button.close:hover, button.fullscreen:hover {
+      background-color: rgba(0, 0, 0, 0.7);
+      color:  #3086e3;
+  }
+
+  /* Initially hide the buttons */
+  button.prev, button.next, button.close, button.fullscreen {
+      opacity: 0;
+      transition: opacity 0.3s ease;
+  }
+
+  /* When buttons are visible (after user interaction) */
+  .show-buttons button.prev,
+  .show-buttons button.next,
+  .show-buttons button.close,
+  .show-buttons button.fullscreen {
+      opacity: 1;
   }
 
   button#playMediaBtn {
@@ -94,9 +156,16 @@
 <script>
   let currentIndex = 0;
   let slideshowRunning = false;
+  let touchStartX = 0; // To track the touch start position
+  let timeout;  // Store the timeout to clear when user interacts
 
   function showSlide(index) {
       const slideshowContent = document.getElementById('slideshow-content');
+      const loadingSpinner = document.getElementById('loading-spinner');
+
+      // Show the spinner while the slide is loading
+      loadingSpinner.style.display = 'block';
+
       const effectiveFileDetailsList = getEffectiveFileDetailsList();
       const file = effectiveFileDetailsList[index];
       const isImage = file.mimetype.startsWith('image/');
@@ -110,22 +179,35 @@
         directory.innerHTML = '&#128194; ' + file.fileName;
         directory.style.color = "#fff";
         slideshowContent.appendChild(directory);
+        loadingSpinner.style.display = 'none';
       } else {
         if (isImage) {
             const img = document.createElement('img');
             img.src = file.fileLink;
             img.alt = file.fileName;
+            img.onload = function() {
+                // Hide spinner once the image has loaded
+                loadingSpinner.style.display = 'none';
+            };
             slideshowContent.appendChild(img);
         } else if (isVideo || isAudio) {
             const video = document.createElement('video');
             video.src = file.fileLink;
             video.controls = true;
+            video.oncanplay = function() {
+                // Hide spinner once the video has started playing
+                loadingSpinner.style.display = 'none';
+            };
+            video.onerror = function() {
+                loadingSpinner.style.display = 'none';
+            }
             slideshowContent.appendChild(video);
         } else {
           const obj = document.createElement('object');
           obj.data = file.fileLink;
           obj.type = file.mimetype;
           slideshowContent.appendChild(obj);
+          loadingSpinner.style.display = 'none';
         }
       }
 
@@ -168,12 +250,104 @@
       slideshowRunning = false;
   }
 
+  function toggleFullscreen() {
+      const slideshowModal = document.getElementById('slideshow-modal');
+
+      if (!document.fullscreenElement) {
+          // If not in fullscreen, request fullscreen
+          if (slideshowModal.requestFullscreen) {
+              slideshowModal.requestFullscreen();
+          } else if (slideshowModal.mozRequestFullScreen) { // Firefox
+              slideshowModal.mozRequestFullScreen();
+          } else if (slideshowModal.webkitRequestFullscreen) { // Chrome, Safari, Opera
+              slideshowModal.webkitRequestFullscreen();
+          } else if (slideshowModal.msRequestFullscreen) { // IE/Edge
+              slideshowModal.msRequestFullscreen();
+          }
+      } else {
+          // If in fullscreen, exit fullscreen
+          if (document.exitFullscreen) {
+              document.exitFullscreen();
+          } else if (document.mozCancelFullScreen) { // Firefox
+              document.mozCancelFullScreen();
+          } else if (document.webkitExitFullscreen) { // Chrome, Safari, Opera
+              document.webkitExitFullscreen();
+          } else if (document.msExitFullscreen) { // IE/Edge
+              document.msExitFullscreen();
+          }
+      }
+  }
+
+  // Function to show the buttons
+  function showButtons() {
+      const modal = document.getElementById('slideshow-modal');
+      modal.classList.add('show-buttons');
+
+      // Clear the timeout if user interacts again before hiding
+      clearTimeout(timeout);
+
+      // Set timeout to hide the buttons after 2 seconds of inactivity
+      timeout = setTimeout(() => {
+          modal.classList.remove('show-buttons');
+      }, 2000);
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
       // Event listener for Escape key on slideshow modal
       document.addEventListener('keydown', function(event) {
-          if (slideshowRunning && event.key === 'Escape') {
-              closeSlideshow();
+          if (slideshowRunning) {
+              showButtons();  // Show buttons again on any key press
+              switch (event.key) {
+                  case 'ArrowLeft':
+                      changeSlide(-1); // Go to the previous slide
+                      break;
+                  case 'ArrowRight':
+                      changeSlide(1); // Go to the next slide
+                      break;
+                  case 'Escape':
+                      closeSlideshow();
+                      break;
+                  case 'f':
+                  case 'F':
+                      event.preventDefault();
+                      toggleFullscreen();
+                      break;
+              }
           }
       });
+
+      // Add touch event listeners for swipe gestures
+      const slideshowContainer = document.getElementById('slideshow-container');
+
+      slideshowContainer.addEventListener('touchstart', function(e) {
+          if (slideshowRunning) {
+              touchStartX = e.changedTouches[0].screenX; // Record the starting touch position
+          }
+      });
+
+      slideshowContainer.addEventListener('touchend', function(e) {
+          if (slideshowRunning) {
+              const touchEndX = e.changedTouches[0].screenX; // Record the ending touch position
+              const swipeDistance = touchEndX - touchStartX; // Calculate the swipe distance
+
+              if (swipeDistance > 50) { // Swipe right
+                  changeSlide(-1); // Go to the previous slide
+              } else if (swipeDistance < -50) { // Swipe left
+                  changeSlide(1); // Go to the next slide
+              } else {
+                  showButtons();  // Show buttons again on screen touch
+              }
+              e.stopPropagation();
+          }
+      });
+
+      // `showButtons` on mouse move
+      document.addEventListener('mousemove', function() {
+          if (slideshowRunning) {
+              showButtons();
+          }
+      });
+      // Initially hide the buttons after 2 seconds of inactivity
+      showButtons(); // To show them once when the page loads
   });
 </script>
