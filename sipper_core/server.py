@@ -10,12 +10,14 @@ class SipperCherootServer(ServerAdapter):
                  ssl_cert=None,
                  ssl_key=None,
                  numthreads=10,
+                 request_queue_size=100,
                  silent=False):
         super().__init__(host, port)
         self.ssl_enabled = ssl_enabled
         self.ssl_cert = ssl_cert
         self.ssl_key = ssl_key
         self.numthreads = numthreads
+        self.request_queue_size = request_queue_size
         self.silent = silent
 
     def run(self, handler):
@@ -36,6 +38,7 @@ class SipperCherootServer(ServerAdapter):
             self.server.ssl_adapter = builtin.BuiltinSSLAdapter(
                 self.ssl_cert, self.ssl_key)
         try:
+            self.server.request_queue_size = self.request_queue_size
             self.server.start()
         except SystemExit:
             self.shutdown()

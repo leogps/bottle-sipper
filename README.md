@@ -77,6 +77,8 @@ Run
     -s, --silent          Suppress log messages from output
     -w NUM_OF_WORKER_THREADS, --num-of-worker-threads NUM_OF_WORKER_THREADS
                           Set number of server worker threads. Default is 10.
+    -c MAX_NUM_OF_CONCURRENT_CONNECTIONS, --connections MAX_NUM_OF_CONCURRENT_CONNECTIONS
+                          Set max number of concurrent connections allowed. Default is 100.
 
     auth-options:
     -u USERNAME, --username USERNAME

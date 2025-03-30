@@ -82,7 +82,8 @@ class Sipper(Thread):
                  searchable=False,
                  gzip=False,
                  silent=False,
-                 num_of_worker_threads=10):
+                 num_of_worker_threads=10,
+                 request_queue_size=100):
         self.servers_running = False
         self.shutdown_requested = False  # To prevent multiple shutdown calls
 
@@ -126,6 +127,7 @@ class Sipper(Thread):
         self.gzip = gzip
         self.silent = silent
         self.num_of_worker_threads = num_of_worker_threads
+        self.request_queue_size = request_queue_size
 
     def get_server_address(self):
         host = request.get_header('Host')
@@ -271,7 +273,8 @@ class Sipper(Thread):
                                      ssl_cert=ssl_cert,
                                      ssl_key=ssl_key,
                                      silent=self.silent,
-                                     numthreads=self.num_of_worker_threads)
+                                     numthreads=self.num_of_worker_threads,
+                                     request_queue_size=self.request_queue_size)
         self.servers.append(server)
         self.server_port = port
         print("Bottle v%s server starting up (using %s)...\n" % (bottle_version, repr(server)))
@@ -393,6 +396,8 @@ if __name__ == "__main__":
                         help='Suppress log messages from output')
     parser.add_argument('-w', '--num-of-worker-threads', type=int, default=10, required=False,
                         help='Set number of server worker threads. Default is 10.')
+    parser.add_argument('-c', '--connections', type=int, default=100, required=False,
+                        help='Max number of concurrent connections')
 
     parser.add_argument('directory')
 
@@ -425,7 +430,8 @@ if __name__ == "__main__":
                     searchable=args.searchable,
                     gzip=args.gzip,
                     silent=args.silent,
-                    num_of_worker_threads=args.num_of_worker_threads)
+                    num_of_worker_threads=args.num_of_worker_threads,
+                    request_queue_size=args.connections)
 
     print('Starting up bottle-sipper, serving %s' % sipper.directory)
     print('')
