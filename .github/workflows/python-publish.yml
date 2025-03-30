@@ -15,15 +15,15 @@ on:
       - 'v*'
 
 permissions:
-  contents: read
+  id-token: write  # Allow writing OIDC token for trusted publisher authentication
 
 jobs:
-  deploy:
+  publish:
 
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python
       uses: actions/setup-python@v3
       with:
@@ -34,8 +34,5 @@ jobs:
         pip install build
     - name: Build package
       run: python -m build
-    - name: Publish package
-      uses: pypa/gh-action-pypi-publish@v1.8.10
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
+    - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
