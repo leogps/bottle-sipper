@@ -174,13 +174,18 @@ class Sipper(Thread):
         return binary_data
 
     def handle_dir(self, path):
+        is_root_dir = os.path.join(self.directory, '') == path
         if os.path.isfile(os.path.join(path, 'index.html')):
             return static_file(filename='index.html', root=path)
 
         if not self.show_directory_listings:
             return HTTPResponse(status=403, body=None)
 
-        dir_list = sorted(os.listdir(path), key=lambda v: (not os.path.isdir(os.path.join(path, v)), v.upper()))
+        dir_list = []
+        if not is_root_dir:
+            dir_list.append('../')
+        dir_contents = sorted(os.listdir(path), key=lambda v: (not os.path.isdir(os.path.join(path, v)), v.upper()))
+        dir_list.extend(dir_contents)
 
         file_details_list = []
         icons = build_icons()
