@@ -1,5 +1,5 @@
 bottle==0.13.2
 argparse>=1.4.0
 ifaddr>=0.2.0
-cheroot>=10.0.0
+cheroot>=10.0.1
 setuptools>=68.2.2

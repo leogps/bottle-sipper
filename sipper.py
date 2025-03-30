@@ -51,13 +51,14 @@ def access_logger(fn):
     def _access_logger(*argz, **kwargs):
         request_time = datetime.now()
         actual_response = fn(*argz, **kwargs)
-        log_format = '%s - - [%s] "%s %s" %s'
+        log_format = '%s - - [%s] "%s %s" %s "%s"'
         log_entry = log_format % (
             request.remote_addr,
             request_time.strftime('%d/%b/%Y:%H:%M:%S +0000'),
             request.method,
             request.url,
-            response.status
+            response.status,
+            request.get_header('User-Agent', '-')  # "-" if no User-Agent
         )
         print(log_entry)
         if is_stdout_buffered:
@@ -82,6 +83,9 @@ class Sipper(Thread):
                  gzip=False,
                  silent=False,
                  num_of_worker_threads=10):
+        self.servers_running = False
+        self.shutdown_requested = False  # To prevent multiple shutdown calls
+
         Thread.__init__(self)
         directory = handle_windows_directory(directory)
         self.directory = directory
@@ -274,7 +278,29 @@ class Sipper(Thread):
         if is_stdout_buffered:
             sys.stdout.flush()
 
+    def handle_exit(self, signum, _):
+        """
+            Handles exit with graceful shutdown of the server(s).
+        """
+        print(f"handling exit with signum {signum}...")
+        if self.shutdown_requested:
+            print(f"Signal {signum} received, but shutdown is already in progress. skipping...")
+            return
+
+        self.shutdown_requested = True
+        try:
+            self.shutdown()  # shut down the server properly on 'exit'.
+            self.await_sipping_complete()
+        except Exception as e:
+            print(f"Error during shutdown: {e}")
+        finally:
+            if shutdown_event:
+                shutdown_event.set()
+
     def start_sipping(self, address, port):
+        """
+            Starts the servers.
+        """
         get('<url_path:path>')(self.serve)
         thread = Thread(target=self._run, kwargs={
             'address': address,
@@ -285,21 +311,25 @@ class Sipper(Thread):
         })
         thread.start()
         self.threads.append(thread)
+        self.servers_running = True
 
-    """
-        Waits on the server thread(s) to complete.
-    """
-
-    def await_sipping_complete(self):
+    def await_sipping_complete(self, timeout_per_thread=5):
+        """
+            Waits on the server thread(s) to complete.
+        """
         if self.threads is not None:
             for thread in self.threads:
-                thread.join()
+                thread.join(timeout=timeout_per_thread)
 
     def shutdown(self, wait_before_shutdown=0):
+        """
+            Shuts down the servers.
+        """
         sleep(wait_before_shutdown)
         print('Shutting down...')
         for server in self.servers:
             server.shutdown()
+        self.servers_running = False
 
     def config_formatted(self):
         config = 'Show Directory Listings: %s' % self.show_directory_listings
@@ -376,6 +406,9 @@ if __name__ == "__main__":
     if args.ssl_enabled and (not args.cert or not args.key):
         parser.error('--cert and --key are required to enable ssl.')
 
+    import threading
+    shutdown_event = threading.Event()
+
     sipper = Sipper(args.directory,
                     show_directory_listings=args.show_dir,
                     auth=authentication,
@@ -415,3 +448,12 @@ if __name__ == "__main__":
         sipper.start_sipping(args.address, args.port)
         pass
     # sipper.await_sipping_complete()
+
+    if sipper.servers_running:
+        import signal
+        signal.signal(signal.SIGINT, sipper.handle_exit)
+        signal.signal(signal.SIGTERM, sipper.handle_exit)
+        if not sipper.shutdown_requested: # If shutdown is not already requested.
+            # Running script vs binary has a 'thread-wait-join' workflow difference.
+            # The if-block above will make sure this does not cause issues.
+            shutdown_event.wait()  # Keeps the script alive

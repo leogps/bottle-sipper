@@ -19,6 +19,9 @@ class SipperCherootServer(ServerAdapter):
         self.silent = silent
 
     def run(self, handler):
+        """
+            Starts wsgi server.
+        """
         from cheroot import wsgi
         from cheroot.ssl import builtin
 
@@ -34,9 +37,13 @@ class SipperCherootServer(ServerAdapter):
                 self.ssl_cert, self.ssl_key)
         try:
             self.server.start()
-        finally:
-            self.server.stop()
+        except SystemExit:
+            self.shutdown()
 
     def shutdown(self):
-        self.server.stop()
-        self.server = None
+        """
+            Shuts down the underlying wsgi server if it exists.
+        """
+        if self.server:
+            self.server.stop()
+            self.server = None

@@ -18,6 +18,7 @@ class TestApplication(unittest.TestCase):
         sipper = Sipper('/')
         sipper.start_sipping('0.0.0.0', 8089)
         sipper.shutdown(wait_before_shutdown=2)
+        sipper.await_sipping_complete()
 
     def test_ssl(self):
         test_dir = os.path.dirname(os.path.abspath(__file__))
@@ -27,6 +28,7 @@ class TestApplication(unittest.TestCase):
         sipper = Sipper('/', ssl_enabled=True, ssl_cert=cert, ssl_key=key)
         sipper.start_sipping('0.0.0.0', 8099)
         sipper.shutdown(wait_before_shutdown=2)
+        sipper.await_sipping_complete()
 
     def test_ssl_validation(self):
         with self.assertRaises(Exception):
