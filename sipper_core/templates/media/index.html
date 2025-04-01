@@ -179,6 +179,12 @@
             &#9654; Play Media
           </button>
         </div>
+        <div class="toggle-container">
+            <input id="autoRotateImgCheckbox" type="checkbox">
+            <label for="autoRotateImgCheckbox"></label>
+            <span>Auto-rotate image</span>
+            <span class="auto-rotate-tooltip-icon">&#x2753;</span>
+        </div>
 
         % for row_index,file_details in enumerate(file_details_list):
           % include('row.html')

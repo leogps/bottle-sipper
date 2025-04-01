@@ -46,8 +46,18 @@
       width: auto;
       height: auto;
       object-fit: contain;
-      max-width: 100%;
-      max-height: 100%;
+      image-orientation: from-image;
+      max-width: 100vw;
+      max-height: 100vh;
+  }
+
+  .slideshow-content img.rotated {
+      transform-origin: center center;
+  }
+
+  .slideshow-content img.swapped-dimensions {
+      max-width: 100vh;
+      max-height: 100vw;
   }
 
   #loading-spinner {
@@ -147,11 +157,118 @@
     background-color: #3086e3;
     border: none;
     border-radius: 5px;
-    cursor: pointer;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
+
+  /* Hide default checkbox */
+  #autoRotateImgCheckbox {
+      display: none;
+  }
+
+  /* Style the label as a toggle switch */
+  #autoRotateImgCheckbox + label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 35px;
+      height: 15px;
+      background: #ccc;
+      border-radius: 20px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.3s ease-in-out;
+      padding: 3px;
+  }
+
+  /* Add FontAwesome rotate icon inside the toggle */
+  #autoRotateImgCheckbox + label::before {
+      content: "\027F3";
+      font-weight: 900;
+      position: absolute;
+      left: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 20px;
+      color: white;
+      transition: transform 0.3s ease-in-out;
+  }
+
+  /* Toggle switch circle */
+  #autoRotateImgCheckbox + label::after {
+      content: "";
+      width: 16px;
+      height: 16px;
+      background: white;
+      border-radius: 50%;
+      position: absolute;
+      left: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      transition: left 0.3s ease-in-out;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  }
+
+  /* When checked, change background color and move the switch */
+  #autoRotateImgCheckbox:checked + label {
+      background: #4caf50; /* Green when ON */
+  }
+
+  /* Move the switch and rotate icon when checked */
+  #autoRotateImgCheckbox:checked + label::after {
+      left: 20px;
+  }
+
+  #autoRotateImgCheckbox:checked + label::before {
+      transform: translateY(-50%) rotate(180deg);
+  }
+
+  /* Adjust spacing for the toggle and label */
+  .toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      margin-bottom: 20px;
+  }
+  /* Tooltip icon ❔ */
+  .auto-rotate-tooltip-icon {
+      font-size: 14px;
+      color: #007BFF; /* Blue color */
+      cursor: help;
+      position: relative;
+  }
+
+  /* Tooltip on hover */
+  .auto-rotate-tooltip-icon:hover::after {
+      content: "Auto-rotates images based on EXIF metadata to correct orientation.";
+      position: absolute;
+      left: 50%;
+      bottom: 150%;
+      transform: translateX(-50%);
+      width: 220px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      font-size: 12px;
+      text-align: center;
+      padding: 5px;
+      border-radius: 5px;
+      white-space: normal;
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.3s ease-in-out;
+  }
+
+  /* Tooltip hidden by default */
+  .auto-rotate-tooltip-icon::after {
+      opacity: 0;
+      visibility: hidden;
+  }
 </style>
+
+<script>
+    % include('exif.js')
+</script>
 
 <script>
   let currentIndex = 0;
@@ -162,6 +279,7 @@
   function showSlide(index) {
       const slideshowContent = document.getElementById('slideshow-content');
       const loadingSpinner = document.getElementById('loading-spinner');
+      const shouldAutoRotate = document.getElementById('autoRotateImgCheckbox').checked;
 
       // Show the spinner while the slide is loading
       loadingSpinner.style.display = 'block';
@@ -184,10 +302,28 @@
         if (isImage) {
             const img = document.createElement('img');
             img.src = file.fileLink;
+            img.style.display = 'none';
             img.alt = file.fileName;
+            let orientationCorrectionCompleted = false;
             img.onload = function() {
                 // Hide spinner once the image has loaded
-                loadingSpinner.style.display = 'none';
+                //loadingSpinner.style.display = 'none';
+                if (shouldAutoRotate && orientationCorrectionCompleted) {
+                    // don't apply rotation more than once.
+                    img.style.diplay = 'block';
+                    loadingSpinner.style.display = 'none';
+                    return;
+                }
+                if (shouldAutoRotate) {
+                    correctImageOrientation(img, () => {
+                        orientationCorrectionCompleted = true;
+                        img.style.display = 'block';
+                        loadingSpinner.style.display = 'none';
+                    });
+                } else {
+                    img.style.display = 'block';
+                    loadingSpinner.style.display = 'none';
+                }
             };
             slideshowContent.appendChild(img);
         } else if (isVideo || isAudio) {
@@ -211,12 +347,53 @@
         }
       }
 
-      const elements = slideshowContent.children;
-      if (elements.length > 0) {
-          elements[0].style.display = 'block';
-      }
       slideshowRunning = true;
   }
+
+  function correctImageOrientation(img, oncomplete) {
+      try {
+          EXIF.getData(img, function() {
+              let orientation = EXIF.getTag(this, "Orientation") || 1;
+              if (orientation === 1) {
+                  oncomplete();
+                  return;
+              }
+              applyRotation(img, orientation);
+              oncomplete();
+          });
+      } catch(e) {
+          console.error(e);
+          oncomplete();
+      }
+  }
+
+  function applyRotation(img, orientation) {
+      console.log("applying rotation...");
+      let rotation = "";
+      let swapDimensions = false;
+      switch (orientation) {
+          case 3:
+              rotation = "rotate(180deg)"; // Upside down
+              break;
+          case 6:
+              rotation = "rotate(90deg)"; // Rotate 90° CW
+              swapDimensions = true;
+              break;
+          case 8:
+              rotation = "rotate(-90deg)"; // Rotate 90° CCW
+              swapDimensions = true;
+              break;
+      }
+
+      if (rotation) {
+          img.style.transform = rotation;
+          img.classList.add("rotated");
+          if (swapDimensions) {
+              img.classList.add("swapped-dimensions");
+          }
+      }
+  }
+
 
   function changeSlide(direction) {
       currentIndex += direction;
@@ -247,34 +424,42 @@
 
   function closeSlideshow() {
       document.getElementById('slideshow-modal').style.display = 'none';
+      exitFullscreen();
       slideshowRunning = false;
   }
 
-  function toggleFullscreen() {
+  function requestFullscreen() {
       const slideshowModal = document.getElementById('slideshow-modal');
+      // If not in fullscreen, request fullscreen
+      if (slideshowModal.requestFullscreen) {
+          slideshowModal.requestFullscreen();
+      } else if (slideshowModal.mozRequestFullScreen) { // Firefox
+          slideshowModal.mozRequestFullScreen();
+      } else if (slideshowModal.webkitRequestFullscreen) { // Chrome, Safari, Opera
+          slideshowModal.webkitRequestFullscreen();
+      } else if (slideshowModal.msRequestFullscreen) { // IE/Edge
+          slideshowModal.msRequestFullscreen();
+      }
+  }
 
+  function exitFullscreen() {
+      // If in fullscreen, exit fullscreen
+      if (document.exitFullscreen) {
+          document.exitFullscreen();
+      } else if (document.mozCancelFullScreen) { // Firefox
+          document.mozCancelFullScreen();
+      } else if (document.webkitExitFullscreen) { // Chrome, Safari, Opera
+          document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) { // IE/Edge
+          document.msExitFullscreen();
+      }
+  }
+
+  function toggleFullscreen() {
       if (!document.fullscreenElement) {
-          // If not in fullscreen, request fullscreen
-          if (slideshowModal.requestFullscreen) {
-              slideshowModal.requestFullscreen();
-          } else if (slideshowModal.mozRequestFullScreen) { // Firefox
-              slideshowModal.mozRequestFullScreen();
-          } else if (slideshowModal.webkitRequestFullscreen) { // Chrome, Safari, Opera
-              slideshowModal.webkitRequestFullscreen();
-          } else if (slideshowModal.msRequestFullscreen) { // IE/Edge
-              slideshowModal.msRequestFullscreen();
-          }
+          requestFullscreen();
       } else {
-          // If in fullscreen, exit fullscreen
-          if (document.exitFullscreen) {
-              document.exitFullscreen();
-          } else if (document.mozCancelFullScreen) { // Firefox
-              document.mozCancelFullScreen();
-          } else if (document.webkitExitFullscreen) { // Chrome, Safari, Opera
-              document.webkitExitFullscreen();
-          } else if (document.msExitFullscreen) { // IE/Edge
-              document.msExitFullscreen();
-          }
+          exitFullscreen();
       }
   }
 
