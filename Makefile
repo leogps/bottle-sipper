@@ -8,7 +8,7 @@ PLATFORMS = linux/amd64,linux/arm64
 
 # Build and push Docker image
 buildAndPush: build
-	docker buildx build . \
+	docker buildx build --no-cache . \
 	-t $(DOCKER_IMAGE_NAME):$(DOCKER_TAG) \
 	--platform "$(PLATFORMS)" \
 	--push
