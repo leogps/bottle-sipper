@@ -7,6 +7,12 @@
         <button class="next" onclick="changeSlide(1)">&#10095;</button>
         <button class="close" onclick="closeSlideshow()">&#x2717;</button>
         <button class="fullscreen" onclick="toggleFullscreen()">&#x26F6;</button> <!-- Fullscreen icon -->
+
+        <!-- Zoom Controls -->
+        <div class="zoom-controls">
+            <button class="zoom-btn" id="zoomIn">+</button>
+            <button class="zoom-btn" id="zoomOut">-</button>
+        </div>
     </div>
 </div>
 
@@ -56,8 +62,8 @@
   }
 
   .slideshow-content img.swapped-dimensions {
-      max-width: 100vh;
-      max-height: 100vw;
+      max-width: 100vh !important;
+      max-height: 100vw !important;
   }
 
   #loading-spinner {
@@ -79,7 +85,7 @@
       100% { transform: rotate(360deg); }
   }
 
-  button.prev, button.next, button.close {
+  button.prev, button.next, button.close, button.fullscreen {
       position: absolute;
       background-color: rgba(0, 0, 0, 0.5);
       color: white;
@@ -127,12 +133,18 @@
   }
 
   button.prev:hover, button.next:hover, button.close:hover, button.fullscreen:hover {
-      background-color: rgba(0, 0, 0, 0.7);
-      color:  #3086e3;
+      background: rgba(255, 255, 255, 0.8);
+      color: black;
+  }
+
+  .zoom-btn:hover {
+      background: rgba(255, 255, 255, 0.8);
+      color: black;
+      transform: scale(1.1);
   }
 
   /* Initially hide the buttons */
-  button.prev, button.next, button.close, button.fullscreen {
+  button.prev, button.next, button.close, button.fullscreen, button.zoom-btn {
       opacity: 0;
       transition: opacity 0.3s ease;
   }
@@ -141,7 +153,8 @@
   .show-buttons button.prev,
   .show-buttons button.next,
   .show-buttons button.close,
-  .show-buttons button.fullscreen {
+  .show-buttons button.fullscreen,
+  .show-buttons .zoom-controls button.zoom-btn {
       opacity: 1;
   }
 
@@ -264,6 +277,39 @@
       opacity: 0;
       visibility: hidden;
   }
+
+  /* Zoom Controls */
+  .zoom-controls {
+      position: absolute;
+      bottom: 100px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+  }
+
+  .zoom-btn {
+      width: 50px;
+      height: 50px;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.2s ease;
+  }
+
+  .zoom-btn:active {
+      transform: scale(0.9);
+  }
+
+  /* Zoom Icon Styling */
+  .zoom-btn::after {
+      content: attr(data-icon); /* Uses data-icon attribute for the symbol */
+  }
 </style>
 
 <script>
@@ -275,8 +321,14 @@
   let slideshowRunning = false;
   let touchStartX = 0; // To track the touch start position
   let timeout;  // Store the timeout to clear when user interacts
+  let initialScale = 1;
+  let scale = 1;
+  const step = 0.2;
+  const maxScale = 3;
+  const minScale = 1;
 
   function showSlide(index) {
+      scale = initialScale;
       const slideshowContent = document.getElementById('slideshow-content');
       const loadingSpinner = document.getElementById('loading-spinner');
       const shouldAutoRotate = document.getElementById('autoRotateImgCheckbox').checked;
@@ -394,7 +446,6 @@
       }
   }
 
-
   function changeSlide(direction) {
       currentIndex += direction;
       const effectiveFileDetailsList = getEffectiveFileDetailsList();
@@ -424,7 +475,9 @@
 
   function closeSlideshow() {
       document.getElementById('slideshow-modal').style.display = 'none';
-      exitFullscreen();
+      try {
+          exitFullscreen();
+      } catch(e) {}
       slideshowRunning = false;
   }
 
@@ -444,7 +497,7 @@
 
   function exitFullscreen() {
       // If in fullscreen, exit fullscreen
-      if (document.exitFullscreen) {
+      if (document.exitFullscreen && document.fullscreenElement) {
           document.exitFullscreen();
       } else if (document.mozCancelFullScreen) { // Firefox
           document.mozCancelFullScreen();
@@ -489,6 +542,8 @@
                   case 'ArrowRight':
                       changeSlide(1); // Go to the next slide
                       break;
+                  case 'q':
+                  case 'Q':
                   case 'Escape':
                       closeSlideshow();
                       break;
@@ -532,6 +587,49 @@
               showButtons();
           }
       });
+
+      document.getElementById("zoomIn").addEventListener("click", () => {
+          if (scale < maxScale) {
+              scale += step;
+              updateZoom();
+          }
+      });
+
+      document.getElementById("zoomOut").addEventListener("click", () => {
+          if (scale > minScale) {
+              scale -= step;
+              updateZoom();
+          }
+      });
+
+      function updateZoom() {
+          const slideshowContent = document.getElementById('slideshow-content');
+          const child = slideshowContent.children[0];
+
+          // Get the existing transform property value
+          let transform = child.style.transform || ''; // Default to an empty string if transform is not set
+          // Check if 'scale' already exists in the transform
+          if (transform.includes('scale')) {
+              // Replace the existing scale value with the new one
+              transform = transform.replace(/scale\([^\)]+\)/, `scale(${scale})`);
+          } else {
+              // Append the new scale if it's not present
+              transform += ` scale(${scale})`;
+          }
+          // Apply the updated transform
+          child.style.transform = transform;
+
+          // Update the size of the content element to enable scrolling
+          child.style.width = `${child.naturalWidth * scale}px`;
+          child.style.height = `${child.naturalHeight * scale}px`;
+
+          if (scale > 1) {
+              slideshowContent.style.overflow = "auto";
+          } else {
+              slideshowContent.style.overflow = "hidden";
+          }
+      }
+
       // Initially hide the buttons after 2 seconds of inactivity
       showButtons(); // To show them once when the page loads
   });
