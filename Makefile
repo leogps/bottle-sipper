@@ -7,7 +7,7 @@ PLATFORMS = linux/amd64,linux/arm64,linux/arm/v7
 .PHONY: buildAndPush
 
 # Build and push Docker image
-buildAndPush: build
+buildAndPush:
 	docker buildx build --no-cache . \
 	-t $(DOCKER_IMAGE_NAME):$(DOCKER_TAG) \
 	--platform "$(PLATFORMS)" \
