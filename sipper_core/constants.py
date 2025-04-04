@@ -54,12 +54,10 @@ if is_python_12_or_newer:
     _media_template = Template(name='media', path=str(files(__name__).joinpath("templates/media/")))
 else:
     # For Python 3.9 to 3.11
-    import importlib.resources as resources
-    with resources.path(__name__, "templates/default/") as default_path:
-        _default_template = Template(name='default', path=str(default_path))
-
-    with resources.path(__name__, "templates/media/") as media_path:
-        _media_template = Template(name='media', path=str(media_path))
+    import pkg_resources
+    _default_template = Template(name='default', path=pkg_resources.resource_filename(__name__, 'templates'
+                                                                                            '/default/'))
+    _media_template = Template(name='media', path=pkg_resources.resource_filename(__name__, 'templates/media/'))
 _templates = [
     _default_template,
     _media_template
