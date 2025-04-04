@@ -1,7 +1,6 @@
 import json
 import os
 import sys
-from importlib.resources import files
 
 YES = ['true', '1', 't', 'y', 'yes', 'yeah', 'yup']
 
@@ -44,8 +43,23 @@ class Template:
 #
 # Initializing templates
 #
-_default_template = Template(name='default', path=str(files(__name__).joinpath("templates/default/")))
-_media_template = Template(name='media', path=str(files(__name__).joinpath("templates/media/")))
+# Check Python version
+is_python_12_or_newer = sys.version_info >= (3, 12)
+
+# Path setup for templates
+if is_python_12_or_newer:
+    # Python 3.12 and above
+    from importlib.resources import files
+    _default_template = Template(name='default', path=str(files(__name__).joinpath("templates/default/")))
+    _media_template = Template(name='media', path=str(files(__name__).joinpath("templates/media/")))
+else:
+    # For Python 3.9 to 3.11
+    import importlib.resources as resources
+    with resources.path(__name__, "templates/default/") as default_path:
+        _default_template = Template(name='default', path=str(default_path))
+
+    with resources.path(__name__, "templates/media/") as media_path:
+        _media_template = Template(name='media', path=str(media_path))
 _templates = [
     _default_template,
     _media_template
