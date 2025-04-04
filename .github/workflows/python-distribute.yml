@@ -249,7 +249,7 @@ jobs:
           checksum_algorithm_files["sha1sum"]="SHA1SUMS"
           checksum_algorithm_files["sha256sum"]="SHA256SUMS"
           checksum_algorithm_files["sha512sum"]="SHA512SUMS"
-          for folder in dist-linux dist-windows dist-macos; 
+          for folder in dist-linux-x64 dist-linux-arm64 dist-windows dist-macos-x64 dist-macos-arm64; 
             do  
               for file in "$folder"/*; 
           	  do
