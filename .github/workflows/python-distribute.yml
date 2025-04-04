@@ -134,10 +134,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: bottle-sipper-linux-x64
-          path: dist/dist-linux
-      - name: Rename Linux Artifact Files
+          path: dist/dist-linux-x64
+      - name: Rename x64 Linux Artifact Files
         run: |
-          cd dist/dist-linux
+          cd dist/dist-linux-x64
           suffix="linux-x64"
           for file in *; do
             filename=$(basename -- "$file")
@@ -156,10 +156,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: bottle-sipper-linux-arm64
-          path: dist/dist-linux
-      - name: Rename Linux Artifact Files
+          path: dist/dist-linux-arm64
+      - name: Rename arm64 Linux Artifact Files
         run: |
-          cd dist/dist-linux
+          cd dist/dist-linux-arm64
           suffix="linux-arm64"
           for file in *; do
             filename=$(basename -- "$file")
@@ -200,10 +200,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: bottle-sipper-macos-x64
-          path: dist/dist-macos
-      - name: Rename macOS Artifact Files
+          path: dist/dist-macos-x64
+      - name: Rename x64 macOS Artifact Files
         run: |
-          cd dist/dist-macos
+          cd dist/dist-macos-x64
           suffix="macos-x64"
           for file in *; do
             filename=$(basename -- "$file")
@@ -222,10 +222,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: bottle-sipper-macos-arm64
-          path: dist/dist-macos
-      - name: Rename macOS Artifact Files
+          path: dist/dist-macos-arm64
+      - name: Rename arm64 macOS Artifact Files
         run: |
-          cd dist/dist-macos
+          cd dist/dist-macos-arm64
           suffix="macos-arm64"
           for file in *; do
             filename=$(basename -- "$file")
@@ -277,14 +277,24 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release Asset for Linux
+      - name: Upload Release Asset for Linux x64
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/dist-linux/sipper-linux-x64
+          asset_path: dist/dist-linux-x64/sipper-linux-x64
           asset_name: sipper-linux-x64
+          asset_content_type: application/octet-stream
+
+      - name: Upload Release Asset for Linux arm64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/dist-linux-arm64/sipper-linux-arm64
+          asset_name: sipper-linux-arm64
           asset_content_type: application/octet-stream
 
       - name: Upload Release Asset for Windows
@@ -297,14 +307,24 @@ jobs:
           asset_name: sipper-windows-x64.exe
           asset_content_type: application/octet-stream
 
-      - name: Upload Release Asset for macOS
+      - name: Upload Release Asset for macOS x64
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/dist-macos/sipper-macos-x64
+          asset_path: dist/dist-macos-x64/sipper-macos-x64
           asset_name: sipper-macos-x64
+          asset_content_type: application/octet-stream
+
+      - name: Upload Release Asset for macOS arm64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/dist-macos-arm64/sipper-macos-arm64
+          asset_name: sipper-macos-arm64
           asset_content_type: application/octet-stream
 
       - name: Upload MD5SUMS
