@@ -1,6 +1,6 @@
 # Define variables
 DOCKER_IMAGE_NAME = leogps/bottle-sipper
-DOCKER_TAG = 0.1.30
+DOCKER_TAG = 0.1.31
 PLATFORMS = linux/amd64,linux/arm64
 
 # Phony targets to prevent conflicts with files of the same name
