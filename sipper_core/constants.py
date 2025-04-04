@@ -1,8 +1,7 @@
 import json
 import os
 import sys
-
-import pkg_resources
+from importlib.resources import files
 
 YES = ['true', '1', 't', 'y', 'yes', 'yeah', 'yup']
 
@@ -45,9 +44,8 @@ class Template:
 #
 # Initializing templates
 #
-_default_template = Template(name='default', path=pkg_resources.resource_filename(__name__, 'templates'
-                                                                                            '/default/'))
-_media_template = Template(name='media', path=pkg_resources.resource_filename(__name__, 'templates/media/'))
+_default_template = Template(name='default', path=str(files(__name__).joinpath("templates/default/")))
+_media_template = Template(name='media', path=str(files(__name__).joinpath("templates/media/")))
 _templates = [
     _default_template,
     _media_template

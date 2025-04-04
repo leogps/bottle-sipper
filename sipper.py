@@ -21,7 +21,7 @@ from time import sleep
 from functools import wraps
 
 import ifaddr
-from bottle import get, install, run, static_file, request, response, HTTPResponse, SimpleTemplate
+from bottle import get, install, hook, run, static_file, request, response, HTTPResponse, SimpleTemplate
 from bottle import __version__ as bottle_version
 
 from sipper_core.server import SipperCherootServer
@@ -83,7 +83,8 @@ class Sipper(Thread):
                  gzip=False,
                  silent=False,
                  num_of_worker_threads=10,
-                 request_queue_size=100):
+                 request_queue_size=100,
+                 cache_expiry=3600):
         self.servers_running = False
         self.shutdown_requested = False  # To prevent multiple shutdown calls
 
@@ -128,6 +129,7 @@ class Sipper(Thread):
         self.silent = silent
         self.num_of_worker_threads = num_of_worker_threads
         self.request_queue_size = request_queue_size
+        self.cache_expiry = cache_expiry
 
     def get_server_address(self):
         host = request.get_header('Host')
@@ -305,11 +307,21 @@ class Sipper(Thread):
             if shutdown_event:
                 shutdown_event.set()
 
+    def after_request_headers(self):
+        response.set_header('Connection', 'keep-alive')
+        response.set_header('Keep-Alive', 'timeout=5')
+        if response.status_code == 404 or response.status_code == 500:
+            response.set_header('Cache-Control', 'no-store')
+            return
+        if self.cache_expiry >= 0:
+            response.set_header('Cache-Control', f"max-age={self.cache_expiry}")
+
     def start_sipping(self, address, port):
         """
             Starts the servers.
         """
         get('<url_path:path>')(self.serve)
+        hook('after_request')(self.after_request_headers)
         thread = Thread(target=self._run, kwargs={
             'address': address,
             'port': port,
@@ -398,10 +410,24 @@ if __name__ == "__main__":
                         help='Set number of server worker threads. Default is 10.')
     parser.add_argument('-c', '--connections', type=int, default=100, required=False,
                         help='Max number of concurrent connections')
+    parser.add_argument('-x', '--cache-expiry', type=int, default=3600, required=False,
+                        help='Set cache time (in seconds) for cache-control max-age header, e.g. -x 10 for 10 seconds. '
+                             'To disable caching, use -x -1.')
+    parser.add_argument('-v', '--version', action='store_true', default=False, required=False,
+                        help='Print the version and exit.')
 
-    parser.add_argument('directory')
+    parser.add_argument('directory', nargs='?', default=None, help='Directory to serve')
 
     args = parser.parse_args()
+
+    if args.version:
+        # handling version
+        print(f"v{__version__}")
+        exit(0)
+
+    if args.directory is None:
+        args.directory = os.getcwd()
+
     if not isinstance(args.show_dir, bool):
         args.show_dir = True if (args.show_dir in YES) else False
 
@@ -431,7 +457,8 @@ if __name__ == "__main__":
                     gzip=args.gzip,
                     silent=args.silent,
                     num_of_worker_threads=args.num_of_worker_threads,
-                    request_queue_size=args.connections)
+                    request_queue_size=args.connections,
+                    cache_expiry=args.cache_expiry)
 
     print('Starting up bottle-sipper, serving %s' % sipper.directory)
     print('')

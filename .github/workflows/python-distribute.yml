@@ -16,7 +16,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.10'
+        python-version: '3.12'
     - name: Install dependencies
       run: |
         pip install --upgrade pip
@@ -32,6 +32,29 @@ jobs:
         name: bottle-sipper-linux-x64
         path: dist/*
 
+  build-linux-arm64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+      - name: Build distributable
+        run: |
+          pip install pyinstaller
+          pip install -r requirements.txt
+          pyinstaller sipper.py --clean --onefile --add-data sipper_core/templates/:sipper_core/templates/ --add-data static/:static/ --add-data sipper_core/:sipper_core/ --collect-submodules pkg_resources
+          dist/sipper -h
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bottle-sipper-linux-arm64
+          path: dist/*
+
   build-windows-x64:
     runs-on: windows-latest
     steps:
@@ -39,7 +62,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.12'
       - name: Install dependencies
         run: |
           python.exe -m pip install --upgrade pip
@@ -56,13 +79,13 @@ jobs:
           path: dist/*
 
   build-macos-x64:
-    runs-on: macos-latest
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.12'
       - name: Install dependencies
         run: |
           pip install --upgrade pip
@@ -76,6 +99,29 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bottle-sipper-macos-x64
+          path: dist/*
+
+  build-macos-arm64:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+      - name: Build distributable
+        run: |
+          pip install pyinstaller
+          pip install -r requirements.txt
+          pyinstaller sipper.py --clean --onefile --add-data sipper_core/templates/:sipper_core/templates/ --add-data static/:static/ --add-data sipper_core/:sipper_core/ --collect-submodules pkg_resources
+          dist/sipper -h
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bottle-sipper-macos-arm64
           path: dist/*
 
   release:
