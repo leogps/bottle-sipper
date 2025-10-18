@@ -32,7 +32,12 @@
         }
 
         a {
+            color: var(--link-color);
             text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
         }
 
         a:visited .card {
@@ -159,6 +164,63 @@
           z-index: 1000; /* Ensure it's above other content */
           display: none; /* Initially hidden */
         }
+
+        .theme-btn {
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            margin-left: 10px;
+            width: 30px;
+            height: 30px;
+        }
+        #themeIcon {
+            width: 100%;
+            height: 100%;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+        }
+
+        .light-icon {
+            background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAtOTYwIDk2MCA5NjAiIHdpZHRoPSIyNHB4IiBmaWxsPSIjODg4ODg4Ij48cGF0aCBkPSJNNDgwLTM2MHE1MCAwIDg1LTM1dDM1LTg1cTAtNTAtMzUtODV0LTg1LTM1cS01MCAwLTg1IDM1dC0zNSA4NXEwIDUwIDM1IDg1dDg1IDM1Wm0wIDgwcS04MyAwLTE0MS41LTU4LjVUMjgwLTQ4MHEwLTgzIDU4LjUtMTQxLjVUNDgwLTY4MHE4MyAwIDE0MS41IDU4LjVUNjgwLTQ4MHEwIDgzLTU4LjUgMTQxLjVUNDgwLTI4MFpNMjAwLTQ0MEg0MHYtODBoMTYwdjgwWm03MjAgMEg3NjB2LTgwaDE2MHY4MFpNNDQwLTc2MHYtMTYwaDgwdjE2MGgtODBabTAgNzIwdi0xNjBoODB2MTYwaC04MFpNMjU2LTY1MGwtMTAxLTk3IDU3LTU5IDk2IDEwMC01MiA1NlptNDkyIDQ5Ni05Ny0xMDEgNTMtNTUgMTAxIDk3LTU3IDU5Wm0tOTgtNTUwIDk3LTEwMSA1OSA1Ny0xMDAgOTYtNTYtNTJaTTE1NC0yMTJsMTAxLTk3IDU1IDUzLTk3IDEwMS01OS01N1ptMzI2LTI2OFoiLz48L3N2Zz4=");
+        }
+
+        .dark-icon {
+            background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAtOTYwIDk2MCA5NjAiIHdpZHRoPSIyNHB4IiBmaWxsPSIjODg4ODg4Ij48cGF0aCBkPSJNNDgwLTEyMHEtMTUwIDAtMjU1LTEwNVQxMjAtNDgwcTAtMTUwIDEwNS0yNTV0MjU1LTEwNXExNCAwIDI3LjUgMXQyNi41IDNxLTQxIDI5LTY1LjUgNzUuNVQ0NDQtNjYwcTAgOTAgNjMgMTUzdDE1MyA2M3E1NSAwIDEwMS0yNC41dDc1LTY1LjVxMiAxMyAzIDI2LjV0MSAyNy41cTAgMTUwLTEwNSAyNTVUNDgwLTEyMFptMC04MHE4OCAwIDE1OC00OC41VDc0MC0zNzVxLTIwIDUtNDAgOHQtNDAgM3EtMTIzIDAtMjA5LjUtODYuNVQzNjQtNjYwcTAtMjAgMy00MHQ4LTQwcS03OCAzMi0xMjYuNSAxMDJUMjAwLTQ4MHEwIDExNiA4MiAxOTh0MTk4IDgyWm0tMTAtMjcwWiIvPjwvc3ZnPg==");
+        }
+        :root {
+            --bg-color: #f4f4f4;
+            --text-color: #000;
+            --card-bg: #fff;
+            --card-shadow: rgba(0,0,0,0.2);
+            --primary-color: #3086e3;
+            --link-color: #0074d9;
+        }
+
+        body.dark-mode {
+            --bg-color: rgb(32,33,34);
+            --text-color: #fff;
+            --card-bg: #1e1e1e;
+            --card-shadow: rgba(0,0,0,0.5);
+            --primary-color: #5599ff;
+            --link-color: #66aaff;
+        }
+
+        /* Apply variables */
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            box-shadow: 0px 0px 5px var(--card-shadow);
+        }
+
+        button.play-file, .play-file-div {
+            background-color: var(--primary-color);
+        }
     </style>
 </head>
 <body>
@@ -184,6 +246,10 @@
             <label for="autoRotateImgCheckbox"></label>
             <span>Auto-rotate image</span>
             <span class="auto-rotate-tooltip-icon">&#x2753;</span>
+
+            <button id="themeToggleBtn" class="theme-btn">
+                <div id="themeIcon" class="theme-icon"></div>
+            </button>
         </div>
 
         % for row_index,file_details in enumerate(file_details_list):
@@ -204,6 +270,31 @@
                 return fileDetailsSearchResults;
             }
             return fileDetailsList;
+        }
+
+        const themeBtn = document.getElementById('themeToggleBtn');
+        const themeIcon = document.getElementById('themeIcon');
+
+        // Detect saved theme or default to light
+        let currentTheme = localStorage.getItem('theme') || 'light';
+        applyTheme(currentTheme);
+
+        themeBtn.addEventListener('click', () => {
+            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+            applyTheme(currentTheme);
+            localStorage.setItem('theme', currentTheme);
+        });
+
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                document.body.classList.add('dark-mode');
+                themeIcon.classList.remove('dark-icon');
+                themeIcon.classList.add('light-icon');
+            } else {
+                document.body.classList.remove('dark-mode');
+                themeIcon.classList.remove('light-icon');
+                themeIcon.classList.add('dark-icon');
+            }
         }
     </script>
     % if searchable:
