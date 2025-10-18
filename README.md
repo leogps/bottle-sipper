@@ -62,35 +62,38 @@ Run
 
     options:
     -h, --help            show this help message and exit
-    -d SHOW_DIR, --show-dir SHOW_DIR. 
-                           Show directory listings
-    -a ADDRESS, --address ADDRESS. 
-                           Address for the server, defaults to 0.0.0.0
-    -p PORT, --port PORT  Port for the server
-    -b TEMPLATE_BASE_DIR, --template-base-dir TEMPLATE_BASE_DIR. 
-                          Template base directory. Takes precedence over --use-available-template option
-    -t USE_AVAILABLE_TEMPLATE, --use-available-template 
-                          USE_AVAILABLE_TEMPLATE. Use out-of-the-box templates. Available templates: default, media
+    -d, --show-dir SHOW_DIR
+    Show directory listings
+    -a, --address ADDRESS
+    Address for the server, defaults to 0.0.0.0
+    -p, --port PORT       Port for the server
+    -b, --template-base-dir TEMPLATE_BASE_DIR
+    Template base directory. Takes precedence over --use-available-template option
+    -t, --use-available-template USE_AVAILABLE_TEMPLATE
+                    Use out-of-the-box templates. Available templates: default, media
     -q, --searchable      Add search box to be able to search on files (Performs fuzzy search similar to fzf tool).
-    -g, --gzip            When enabled, it will server some-file.js.gz file in place of some-file.js when a gzipped version of the file exists and the request accepts gzip encoding.
-                          Also applies gzip to the directory listing response.
+    -g, --gzip            When enabled, it will server some-file.js.gz file in place of some-file.js when a gzipped version of the file exists and
+    the request accepts gzip encoding. Also applies gzip to the directory listing response.
     -s, --silent          Suppress log messages from output
-    -w NUM_OF_WORKER_THREADS, --num-of-worker-threads NUM_OF_WORKER_THREADS
-                          Set number of server worker threads. Default is 10.
-    -c MAX_NUM_OF_CONCURRENT_CONNECTIONS, --connections MAX_NUM_OF_CONCURRENT_CONNECTIONS
-                          Set max number of concurrent connections allowed. Default is 100.
+    -w, --num-of-worker-threads NUM_OF_WORKER_THREADS
+                    Set number of server worker threads. Default is 10.
+    -c, --connections CONNECTIONS
+                    Max number of concurrent connections
+    -x, --cache-expiry CACHE_EXPIRY
+                    Set cache time (in seconds) for cache-control max-age header, e.g. -x 10 for 10 seconds. To disable caching, use -x -1.
+    -v, --version         Print the version and exit.
 
     auth-options:
-    -u USERNAME, --username USERNAME
-                          Username for basic authentication
-    -P PASSWORD, --password PASSWORD
-                          Password for basic authentication
+    -u, --username USERNAME
+    Username for basic authentication
+    -P, --password PASSWORD
+    Password for basic authentication
 
     ssl-options:
     -S, --ssl-enabled, --tls-enabled
-                          Enable secure request serving with TLS/SSL (HTTPS).
-    -C CERT, --cert CERT  Path to ssl cert file
-    -K KEY, --key KEY     Path to ssl key file
+    Enable secure request serving with TLS/SSL (HTTPS).
+    -C, --cert CERT       Path to ssl cert file
+    -K, --key KEY         Path to ssl key file
 ---
 
 #### Programmatical usage:
