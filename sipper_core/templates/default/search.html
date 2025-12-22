@@ -11,7 +11,8 @@
     % end
 
     const fuzzySearch = new fzf.Fzf(fileDetailsList, {
-        selector: (item) => item.fileName
+        selector: (item) => item.fileName,
+        casing: 'case-insensitive'
     });
     const progressBar = document.querySelector("#progress-bar");
 
