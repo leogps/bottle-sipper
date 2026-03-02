@@ -1,8 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>Index of {{dir}}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('theme');
+
+            let theme = savedTheme;
+
+            // If user never selected theme → follow OS
+            if (!theme) {
+                theme = window.matchMedia('(prefers-color-scheme: dark)').matches
+                    ? 'dark'
+                    : 'light';
+            }
+
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <style>
         body {
@@ -198,7 +218,7 @@
             --link-color: #0074d9;
         }
 
-        body.dark-mode {
+        .dark-mode {
             --bg-color: rgb(32,33,34);
             --text-color: #fff;
             --card-bg: #1e1e1e;
@@ -287,11 +307,11 @@
 
         function applyTheme(theme) {
             if (theme === 'dark') {
-                document.body.classList.add('dark-mode');
+                document.documentElement.classList.add('dark-mode');
                 themeIcon.classList.remove('dark-icon');
                 themeIcon.classList.add('light-icon');
             } else {
-                document.body.classList.remove('dark-mode');
+                document.documentElement.classList.remove('dark-mode');
                 themeIcon.classList.remove('light-icon');
                 themeIcon.classList.add('dark-icon');
             }

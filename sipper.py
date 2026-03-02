@@ -36,6 +36,9 @@ from sipper_core.common import perms_to_string, sizeof_fmt, handle_windows_direc
 from sipper_core.compress import apply_gzip
 from sipper_core.metadata import __version__
 
+NUM_WORKER_THREADS = 10
+REQ_QUEUE_SIZE = 100
+DEFAULT_CACHE_EXPIRY = 60
 
 def is_stdout_buffered():
     return not sys.stdout.isatty()
@@ -82,9 +85,9 @@ class Sipper(Thread):
                  searchable=False,
                  gzip=False,
                  silent=False,
-                 num_of_worker_threads=10,
-                 request_queue_size=100,
-                 cache_expiry=3600):
+                 num_of_worker_threads=NUM_WORKER_THREADS,
+                 request_queue_size=REQ_QUEUE_SIZE,
+                 cache_expiry=DEFAULT_CACHE_EXPIRY):
         self.servers_running = False
         self.shutdown_requested = False  # To prevent multiple shutdown calls
 
@@ -310,11 +313,27 @@ class Sipper(Thread):
     def after_request_headers(self):
         response.set_header('Connection', 'keep-alive')
         response.set_header('Keep-Alive', 'timeout=5')
-        if response.status_code == 404 or response.status_code == 500:
-            response.set_header('Cache-Control', 'no-store')
+        response.set_header('Vary', 'Accept-Encoding')
+
+        if response.status_code >= 400:
+            response.set_header(
+                'Cache-Control',
+                'no-store, no-cache, must-revalidate'
+            )
+            response.set_header('Pragma', 'no-cache')
+            response.set_header('Expires', '0')
             return
-        if self.cache_expiry >= 0:
-            response.set_header('Cache-Control', f"max-age={self.cache_expiry}")
+
+        if self.cache_expiry < 0:
+            response.set_header('Cache-Control',
+                                'no-store, no-cache, must-revalidate')
+            response.set_header('Pragma', 'no-cache')
+            response.set_header('Expires', '0')
+        elif self.cache_expiry == 0:
+            response.set_header('Cache-Control','no-cache')
+        else:
+            response.set_header('Cache-Control',
+                                f'max-age={self.cache_expiry}')
 
     def start_sipping(self, address, port):
         """
@@ -352,17 +371,30 @@ class Sipper(Thread):
         self.servers_running = False
 
     def config_formatted(self):
-        config = 'Show Directory Listings: %s' % self.show_directory_listings
-        if self.authentication.enabled:
-            config += '\n' + 'Authentication Enabled: True'
-        if self.ssl_enabled:
-            config += '\n' + 'SSL Enabled: True'
+        config = f' Show Directory Listings: {self.show_directory_listings}'
+        authEnabled = 'Enabled' if self.authentication is not None else 'Disabled'
+        config += f'\n Authentication: {authEnabled}'
+
+        sslEnabled = 'Enabled' if self.ssl_enabled else 'Disabled'
+        config += f'\n SSL: {sslEnabled}'
+
         for t in get_templates():
             if t.path == self.template_base_dir:
-                config += '\n' + 'Template: ' + t.name
+                config += f'\n Template: {t.name}'
                 break
+
+        config += f'\n Cache-Expiry: {str(self.cache_expiry)}'
+        config += f'\n Num. of Worker Threads: {self.num_of_worker_threads}'
+        config += f'\n Max number of concurrent connections: {self.request_queue_size}'
+
+        gzipEnabled = 'Enabled' if self.gzip else 'Disabled'
+        config += f'\n GZIP: {gzipEnabled}'
+
+        searchEnabled = 'Enabled' if self.searchable else 'Disabled'
+        config += f'\n Search: {searchEnabled}'
+
         if self.silent:
-            config += '\n' + 'Silent: True'
+            config += '\n Silent: True'
         return config
 
 
@@ -406,13 +438,13 @@ if __name__ == "__main__":
                              ' Also applies gzip to the directory listing response.')
     parser.add_argument('-s', '--silent', action='store_true', default=False, required=False,
                         help='Suppress log messages from output')
-    parser.add_argument('-w', '--num-of-worker-threads', type=int, default=10, required=False,
-                        help='Set number of server worker threads. Default is 10.')
-    parser.add_argument('-c', '--connections', type=int, default=100, required=False,
-                        help='Max number of concurrent connections')
-    parser.add_argument('-x', '--cache-expiry', type=int, default=3600, required=False,
+    parser.add_argument('-w', '--num-of-worker-threads', type=int, default=NUM_WORKER_THREADS, required=False,
+                        help=f'Set number of server worker threads. Default is {NUM_WORKER_THREADS}')
+    parser.add_argument('-c', '--connections', type=int, default=REQ_QUEUE_SIZE, required=False,
+                        help=f'Max number of concurrent connections. Default is {REQ_QUEUE_SIZE}')
+    parser.add_argument('-x', '--cache-expiry', type=int, default=DEFAULT_CACHE_EXPIRY, required=False,
                         help='Set cache time (in seconds) for cache-control max-age header, e.g. -x 10 for 10 seconds. '
-                             'To disable caching, use -x -1.')
+                             f'To disable caching, use -x -1. Default is {DEFAULT_CACHE_EXPIRY}s')
     parser.add_argument('-v', '--version', action='store_true', default=False, required=False,
                         help='Print the version and exit.')
 
@@ -464,7 +496,7 @@ if __name__ == "__main__":
     print('')
     print('bottle-sipper version: %s' % __version__)
     print('')
-    print('bottle-sipper settings:')
+    print('Settings:')
     print(sipper.config_formatted())
     print('')
 
