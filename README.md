@@ -1,8 +1,8 @@
 # bottle-sipper
 
-## Sipper is a simple, zero-configuration command-line static HTTP server. 
+## Sipper is a simple, zero-configuration command-line static HTTP server.
 
-It is built using bottle: 
+It is built using bottle:
 https://github.com/bottlepy/bottle | https://bottlepy.org/docs/dev/
 
 
@@ -30,14 +30,14 @@ Run
   sipper -q -g -t media <directory-to-serve> # for media template.
   ```
 
-  
+
 ---
 
 ### Usage
 
     # Pip based installation:
     python -m pip install bottle-sipper
-    
+
 #### Zero config run
     python -m sipper <directory-to-serve>
 
@@ -54,50 +54,51 @@ Run
 ---
 
 #### Options
-    
+
     usage: sipper.py [-h] [-d SHOW_DIR] [-a ADDRESS] [-p PORT] [-u USERNAME] [-P PASSWORD] [-b TEMPLATE_BASE_DIR] [-t USE_AVAILABLE_TEMPLATE] directory
 
     positional arguments:
     directory
 
     options:
-    -h, --help            show this help message and exit
-    -d, --show-dir SHOW_DIR
-    Show directory listings
-    -a, --address ADDRESS
-    Address for the server, defaults to 0.0.0.0
-    -p, --port PORT       Port for the server
-    -b, --template-base-dir TEMPLATE_BASE_DIR
-    Template base directory. Takes precedence over --use-available-template option
-    -t, --use-available-template USE_AVAILABLE_TEMPLATE
-                    Use out-of-the-box templates. Available templates: default, media
-    -q, --searchable      Add search box to be able to search on files (Performs fuzzy search similar to fzf tool).
-    -g, --gzip            When enabled, it will server some-file.js.gz file in place of some-file.js when a gzipped version of the file exists and
-    the request accepts gzip encoding. Also applies gzip to the directory listing response.
-    -s, --silent          Suppress log messages from output
-    -w, --num-of-worker-threads NUM_OF_WORKER_THREADS
-                    Set number of server worker threads. Default is 10.
-    -c, --connections CONNECTIONS
-                    Max number of concurrent connections
-    -x, --cache-expiry CACHE_EXPIRY
-                    Set cache time (in seconds) for cache-control max-age header, e.g. -x 10 for 10 seconds. To disable caching, use -x -1.
-    -v, --version         Print the version and exit.
+      -h, --help            show this help message and exit
+      -d, --show-dir SHOW_DIR
+                            Show directory listings
+      -a, --address ADDRESS
+                            Address for the server, defaults to 0.0.0.0
+      -p, --port PORT       Port for the server
+      -b, --template-base-dir TEMPLATE_BASE_DIR
+                            Template base directory. Takes precedence over --use-available-template option
+      -t, --use-available-template USE_AVAILABLE_TEMPLATE
+                            Use out-of-the-box templates. Available templates: default, media
+      -q, --searchable      Add search box to be able to search on files (Performs fuzzy search similar to fzf tool).
+      -g, --gzip            When enabled, it will server some-file.js.gz file in place of some-file.js when a gzipped version of the file exists and
+                            the request accepts gzip encoding. Also applies gzip to the directory listing response.
+      -s, --silent          Suppress log messages from output
+      -w, --num-of-worker-threads NUM_OF_WORKER_THREADS
+                            Set number of server worker threads. Default is 10
+      -c, --connections CONNECTIONS
+                            Max number of concurrent connections. Default is 100
+      -x, --cache-expiry CACHE_EXPIRY
+                            Set cache time (in seconds) for cache-control max-age header, e.g. -x 10 for 10 seconds. To disable caching, use -x -1.
+                            Default is 60s
+      -v, --version         Print the version and exit.
 
     auth-options:
-    -u, --username USERNAME
-    Username for basic authentication
-    -P, --password PASSWORD
-    Password for basic authentication
+      -u, --username USERNAME
+                            Username for basic authentication
+      -P, --password PASSWORD
+                            Password for basic authentication
 
     ssl-options:
-    -S, --ssl-enabled, --tls-enabled
-    Enable secure request serving with TLS/SSL (HTTPS).
-    -C, --cert CERT       Path to ssl cert file
-    -K, --key KEY         Path to ssl key file
+      -S, --ssl-enabled, --tls-enabled
+                            Enable secure request serving with TLS/SSL (HTTPS).
+      -C, --cert CERT       Path to ssl cert file
+      -K, --key KEY         Path to ssl key file
 ---
 
 #### Programmatical usage:
-  
+
     sipper = Sipper('<dir>')
     sipper.start_sipping('0.0.0.0', 8080)
     sipper.await_sipping_complete() # Optionally, sipper.shutdown(wait_before_shutdown=600) to shutdown after 10min.
