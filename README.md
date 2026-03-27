@@ -18,7 +18,7 @@ https://github.com/http-party/http-server | https://www.npmjs.com/package/http-s
 
 Download executable for your platform here:
 
-* [Latest Release](https://github.com/leogps/bottle-sipper/releases/tag/exe_v0.1.21)
+* [Latest Release](https://github.com/leogps/bottle-sipper/releases/tag/exe_0.1.31-4)
 
 Run
 
