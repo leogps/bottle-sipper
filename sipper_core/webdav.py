@@ -1,38 +1,28 @@
 import os
+import pathlib
 import shutil
 import urllib.parse
 import xml.etree.ElementTree as eT
 from bottle import request, response, abort, route
 
+from sipper_core.constants import get_mime_extensions
+
 DAV_NS = 'DAV:'
 
 
-def get_mime_type(filepath):
+def get_mime_type(filename):
     """Determine MIME type of a file."""
-    _, ext = os.path.splitext(filepath)
-    ext = ext.lower()
+
+    extension = pathlib.Path(filename).suffix
+    ext = extension.lower().replace('.', '')
+
+    mime_type_extensions = get_mime_extensions()
+    if ext in mime_type_extensions:
+        mime_type = mime_type_extensions[ext]
+    else:
+        mime_type = 'application/octet-stream'
     
-    mime_extensions = {
-        '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
-        '.gif': 'image/gif', '.bmp': 'image/bmp', '.webp': 'image/webp',
-        '.ico': 'image/x-icon', '.svg': 'image/svg+xml', '.txt': 'text/plain',
-        '.html': 'text/html', '.htm': 'text/html', '.xml': 'application/xml',
-        '.json': 'application/json', '.css': 'text/css', '.js': 'application/javascript',
-        '.py': 'text/x-python', '.sh': 'application/x-sh', '.c': 'text/x-c',
-        '.cpp': 'text/x-c++', '.h': 'text/x-c', '.java': 'text/x-java',
-        '.php': 'application/x-httpd-php', '.pdf': 'application/pdf',
-        '.zip': 'application/zip', '.tar': 'application/x-tar',
-        '.gz': 'application/gzip', '.bz2': 'application/x-bzip2',
-        '.xz': 'application/x-xz', '.rar': 'application/x-rar',
-        '.7z': 'application/x-7z-compressed', '.iso': 'application/x-iso9660-image',
-        '.mp4': 'video/mp4', '.avi': 'video/x-msvideo', '.mkv': 'video/x-matroska',
-        '.mov': 'video/quicktime', '.wmv': 'video/x-ms-wmv', '.flv': 'video/x-flv',
-        '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg',
-        '.wma': 'audio/x-ms-wma', '.m4a': 'audio/mp4', '.aac': 'audio/aac',
-        '.flac': 'audio/flac',
-    }
-    
-    return mime_extensions.get(ext, 'application/octet-stream')
+    return mime_type
 
 
 def formatdate(timeval, localtime=False, usegmt=True):
@@ -189,15 +179,15 @@ class WebDavRoutes:
 
         # D:response
         w_response = eT.SubElement(root, 'D:response')
-        w_response.set('depth', depth_str)
 
         # D:href
         href = eT.SubElement(w_response, 'D:href')
         href.text = "/{}".format(path)
 
-
+        # D:propstat
         propstat = eT.SubElement(w_response, 'D:propstat')
 
+        # D:prop
         prop = eT.SubElement(propstat, 'D:prop')
         
         displayname_val = os.path.basename(full_path)
@@ -205,14 +195,15 @@ class WebDavRoutes:
         getlastmodified_val = formatdate(timeval=stat_result.st_mtime, localtime=False, usegmt=True)
         getcontentlength_val = str(stat_result.st_size)
         getcontenttype_val = mime_type if not is_dir else ''
-        getetag_val = etag_value
+        getetag_val = '"{}"'.format(etag_value)
 
         self._add_getlastmodified(prop, getlastmodified_val)
         self._add_resourcetype(prop, is_dir)
         self._add_displayname(prop, displayname_val)
         self._add_lastmodified(prop, lastmodified_val)
         self._add_getcontentlength(prop, getcontentlength_val)
-        self.add_getcontenttype(prop, getcontenttype_val)
+        if not is_dir:
+            self.add_getcontenttype(prop, getcontenttype_val)
 
         elem = eT.SubElement(prop, 'D:getetag')
         elem.text = getetag_val
