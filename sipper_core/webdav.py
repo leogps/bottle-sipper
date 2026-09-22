@@ -234,9 +234,8 @@ class WebDavRoutes:
         # Handle special case: root directory (empty path)
         if parent_path == '':
             parent_path = '/'
-        
-        dir_path = os.path.dirname(full_path)
-        dir_path_str = str(dir_path)
+
+        dir_path_str = full_path
         dir_basename = os.path.basename(full_path)
         _ = '{}{}'.format(parent_path, dir_basename)
         
