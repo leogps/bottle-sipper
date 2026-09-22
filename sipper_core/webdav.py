@@ -187,7 +187,7 @@ class WebDavRoutes:
         self._add_resource_to_response(root, full_path, path, depth_str, depth_int, stat_result, etag_value, is_dir)
         
         # If depth is 1 or infinity, also add children
-        if is_dir and depth_int >= 1:
+        if is_dir and (depth_int == 1 or depth_int == -1):
             self._add_children_to_response(root, full_path, depth_int, path)
 
         response.status = 207
