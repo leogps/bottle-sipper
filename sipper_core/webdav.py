@@ -150,8 +150,13 @@ class WebDavRoutes:
         elem.text = value
 
     @staticmethod
-    def add_getcontenttype(parent, value):
+    def _add_getcontenttype(parent, value):
         elem = eT.SubElement(parent, 'D:getcontenttype')
+        elem.text = value
+
+    @staticmethod
+    def _add_getetag(parent, value):
+        elem = eT.SubElement(parent, 'D:getetag')
         elem.text = value
 
     def _webdav_propfind(self, path, depth=None):
@@ -179,7 +184,7 @@ class WebDavRoutes:
         root.set('xmlns:D', DAV_NS)
 
         # First, add the target resource
-        self._add_resource_to_response(root, full_path, path, depth_str, depth_int, stat_result, etag_value)
+        self._add_resource_to_response(root, full_path, path, depth_str, depth_int, stat_result, etag_value, is_dir)
         
         # If depth is 1 or infinity, also add children
         if is_dir and depth_int >= 1:
@@ -189,7 +194,7 @@ class WebDavRoutes:
         response.content_type = 'text/xml; charset=utf-8'
         return eT.tostring(root, encoding='utf-8', xml_declaration=True)
 
-    def _add_resource_to_response(self, root, full_path, path, depth_str, depth_int, stat_result, etag_value):
+    def _add_resource_to_response(self, root, full_path, path, depth_str, depth_int, stat_result, etag_value, is_dir):
         """Add a response for the target path/resource."""
         w_response = eT.SubElement(root, 'D:response')
 
@@ -202,25 +207,24 @@ class WebDavRoutes:
 
         # D:prop
         prop = eT.SubElement(propstat, 'D:prop')
-        
+
         displayname_val = os.path.basename(full_path)
         lastmodified_val = str(int(stat_result.st_mtime))
         getlastmodified_val = formatdate(timeval=stat_result.st_mtime, localtime=False, usegmt=True)
-        getcontentlength_val = str(stat_result.st_size) if not os.path.isdir(full_path) else None
-        getcontenttype_val = get_mime_type(full_path) if not os.path.isdir(full_path) else ''
+        getcontentlength_val = str(stat_result.st_size) if not is_dir else None
+        getcontenttype_val = get_mime_type(full_path) if not is_dir else ''
         getetag_val = '"{}"'.format(etag_value)
 
         self._add_getlastmodified(prop, getlastmodified_val)
-        self._add_resourcetype(prop, os.path.isdir(full_path))
+        self._add_resourcetype(prop, is_dir)
         self._add_displayname(prop, displayname_val)
         self._add_lastmodified(prop, lastmodified_val)
-        if not os.path.isdir(full_path):
+        if not is_dir:
             self._add_getcontentlength(prop, getcontentlength_val)
-        if not os.path.isdir(full_path):
-            self.add_getcontenttype(prop, getcontenttype_val)
-
-        elem = eT.SubElement(prop, 'D:getetag')
-        elem.text = getetag_val
+        if not is_dir:
+            self._add_getcontenttype(prop, getcontenttype_val)
+        if not is_dir:
+            self._add_getetag(prop, getetag_val)
 
         status = eT.SubElement(propstat, 'D:status')
         status.text = 'HTTP/1.1 200 OK'
@@ -250,12 +254,12 @@ class WebDavRoutes:
             if depth_int == 1:
                 # Add this immediate child
                 child_etag_value = f"{int(child_stat.st_mtime)}-{child_stat.st_size}"
-                self._add_resource_to_response(root, child_path_str, child_path_str, "1", 1, child_stat, child_etag_value)
+                self._add_resource_to_response(root, child_path_str, child_path_str, "1", 1, child_stat, child_etag_value, child_is_dir)
                 # For depth 1, we only process immediate children, don't recurse into directories
             else:  # depth_int == -1 (infinity)
                 # Recursively add all descendants
                 child_etag_value = f"{int(child_stat.st_mtime)}-{child_stat.st_size}"
-                self._add_resource_to_response(root, child_path_str, child_path_str, "infinity", -1, child_stat, child_etag_value)
+                self._add_resource_to_response(root, child_path_str, child_path_str, "infinity", -1, child_stat, child_etag_value, child_is_dir)
                 
                 if child_is_dir:
                     self._add_children_to_response(root, child_full_path, -1, child_path_str)
