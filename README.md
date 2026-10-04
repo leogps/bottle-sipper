@@ -82,6 +82,7 @@ Run
       -x, --cache-expiry CACHE_EXPIRY
                             Set cache time (in seconds) for cache-control max-age header, e.g. -x 10 for 10 seconds. To disable caching, use -x -1.
                             Default is 60s
+      -W, --webdav          Enable WebDAV support for directory management (PROPFIND, COPY, MOVE, DELETE, etc.)
       -v, --version         Print the version and exit.
 
     auth-options:

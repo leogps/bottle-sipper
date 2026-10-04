@@ -87,9 +87,11 @@ class Sipper(Thread):
                  silent=False,
                  num_of_worker_threads=NUM_WORKER_THREADS,
                  request_queue_size=REQ_QUEUE_SIZE,
-                 cache_expiry=DEFAULT_CACHE_EXPIRY):
+                 cache_expiry=DEFAULT_CACHE_EXPIRY,
+                 webdav_enabled=False):
         self.servers_running = False
         self.shutdown_requested = False  # To prevent multiple shutdown calls
+        self.shutdown_event = None
 
         Thread.__init__(self)
         directory = handle_windows_directory(directory)
@@ -133,6 +135,7 @@ class Sipper(Thread):
         self.num_of_worker_threads = num_of_worker_threads
         self.request_queue_size = request_queue_size
         self.cache_expiry = cache_expiry
+        self.webdav_enabled = webdav_enabled
 
     def get_server_address(self):
         host = request.get_header('Host')
@@ -142,15 +145,15 @@ class Sipper(Thread):
             hostname = host.split(':')[0]
         return ':'.join([hostname, str(self.server_port)])
 
-    def handle_auth(self, req, res):
-        header = req.get_header('Authorization')
+    def handle_auth(self):
+        if not self.authentication.enabled:
+            return
+        header = request.get_header('Authorization')
         if not isinstance(header, str) or not self.authentication.authenticate(header):
-            self.authentication.decorate_with_auth_required(res)
-            raise res.copy(cls=HTTPResponse)
+            self.authentication.decorate_with_auth_required(response)
+            raise response.copy(cls=HTTPResponse)
 
     def serve(self, url_path=''):
-        if self.authentication.enabled:
-            self.handle_auth(request, response)
         # print('Requested: %s' % url_path)
         url_path_normalized = url_path.replace('/', '', 1)
         filename = os.path.join(self.directory, url_path_normalized)
@@ -270,7 +273,17 @@ class Sipper(Thread):
     def _run(self, address, port,
              ssl_enabled=False,
              ssl_cert=None,
-             ssl_key=None):
+             ssl_key=None,
+             numthreads=None,
+             request_queue_size=100,
+             webdav_enabled=False):
+        """Run the server."""
+        #
+        # # Set up WebDAV if enabled
+        if webdav_enabled:
+            from sipper_core.webdav import WebDavRoutes
+            self.webdav_routes = WebDavRoutes(self.directory, self.gzip)
+
         # print('Serving at http://{}:{}'.format(ip, port))
         server = SipperCherootServer(host=address,
                                      port=port,
@@ -278,8 +291,8 @@ class Sipper(Thread):
                                      ssl_cert=ssl_cert,
                                      ssl_key=ssl_key,
                                      silent=self.silent,
-                                     numthreads=self.num_of_worker_threads,
-                                     request_queue_size=self.request_queue_size)
+                                     numthreads=numthreads,
+                                     request_queue_size=request_queue_size)
         self.servers.append(server)
         self.server_port = port
         print("Bottle v%s server starting up (using %s)...\n" % (bottle_version, repr(server)))
@@ -307,8 +320,8 @@ class Sipper(Thread):
         except Exception as e:
             print(f"Error during shutdown: {e}")
         finally:
-            if shutdown_event:
-                shutdown_event.set()
+            if self.shutdown_event:
+                self.shutdown_event.set()
 
     def after_request_headers(self):
         response.set_header('Connection', 'keep-alive')
@@ -339,6 +352,7 @@ class Sipper(Thread):
         """
             Starts the servers.
         """
+        hook('before_request')(self.handle_auth)
         get('<url_path:path>')(self.serve)
         hook('after_request')(self.after_request_headers)
         thread = Thread(target=self._run, kwargs={
@@ -346,7 +360,10 @@ class Sipper(Thread):
             'port': port,
             'ssl_enabled': self.ssl_enabled,
             'ssl_cert': self.ssl_cert,
-            'ssl_key': self.ssl_key
+            'ssl_key': self.ssl_key,
+            'numthreads': self.num_of_worker_threads,
+            'request_queue_size': self.request_queue_size,
+            'webdav_enabled': self.webdav_enabled
         })
         thread.start()
         self.threads.append(thread)
@@ -372,11 +389,11 @@ class Sipper(Thread):
 
     def config_formatted(self):
         config = f' Show Directory Listings: {self.show_directory_listings}'
-        authEnabled = 'Enabled' if self.authentication is not None else 'Disabled'
-        config += f'\n Authentication: {authEnabled}'
+        auth_enabled = 'Enabled' if self.authentication is not None else 'Disabled'
+        config += f'\n Authentication: {auth_enabled}'
 
-        sslEnabled = 'Enabled' if self.ssl_enabled else 'Disabled'
-        config += f'\n SSL: {sslEnabled}'
+        ssl_enabled = 'Enabled' if self.ssl_enabled else 'Disabled'
+        config += f'\n SSL: {ssl_enabled}'
 
         for t in get_templates():
             if t.path == self.template_base_dir:
@@ -387,11 +404,14 @@ class Sipper(Thread):
         config += f'\n Num. of Worker Threads: {self.num_of_worker_threads}'
         config += f'\n Max number of concurrent connections: {self.request_queue_size}'
 
-        gzipEnabled = 'Enabled' if self.gzip else 'Disabled'
-        config += f'\n GZIP: {gzipEnabled}'
+        gzip_enabled = 'Enabled' if self.gzip else 'Disabled'
+        config += f'\n GZIP: {gzip_enabled}'
 
-        searchEnabled = 'Enabled' if self.searchable else 'Disabled'
-        config += f'\n Search: {searchEnabled}'
+        search_enabled = 'Enabled' if self.searchable else 'Disabled'
+        config += f'\n Search: {search_enabled}'
+
+        webdav_enabled = 'Enabled' if self.webdav_enabled else 'Disabled'
+        config += f'\n WebDAV: {webdav_enabled}'
 
         if self.silent:
             config += '\n Silent: True'
@@ -436,6 +456,8 @@ if __name__ == "__main__":
                         help='When enabled, it will server some-file.js.gz file in place of some-file.js when a '
                              'gzipped version of the file exists and the request accepts gzip encoding.'
                              ' Also applies gzip to the directory listing response.')
+    parser.add_argument('-W', '--webdav', action='store_true', default=False, required=False,
+                        help='Enable WebDAV support')
     parser.add_argument('-s', '--silent', action='store_true', default=False, required=False,
                         help='Suppress log messages from output')
     parser.add_argument('-w', '--num-of-worker-threads', type=int, default=NUM_WORKER_THREADS, required=False,
@@ -490,7 +512,8 @@ if __name__ == "__main__":
                     silent=args.silent,
                     num_of_worker_threads=args.num_of_worker_threads,
                     request_queue_size=args.connections,
-                    cache_expiry=args.cache_expiry)
+                    cache_expiry=args.cache_expiry,
+                    webdav_enabled=args.webdav)
 
     print('Starting up bottle-sipper, serving %s' % sipper.directory)
     print('')
@@ -526,4 +549,5 @@ if __name__ == "__main__":
         if not sipper.shutdown_requested: # If shutdown is not already requested.
             # Running script vs binary has a 'thread-wait-join' workflow difference.
             # The if-block above will make sure this does not cause issues.
+            sipper.shutdown_event = shutdown_event
             shutdown_event.wait()  # Keeps the script alive
