@@ -282,7 +282,7 @@ class Sipper(Thread):
         # # Set up WebDAV if enabled
         if webdav_enabled:
             from sipper_core.webdav import WebDavRoutes
-            self.webdav_routes = WebDavRoutes(self.directory)
+            self.webdav_routes = WebDavRoutes(self.directory, self.gzip)
 
         # print('Serving at http://{}:{}'.format(ip, port))
         server = SipperCherootServer(host=address,

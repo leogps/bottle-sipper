@@ -487,6 +487,93 @@ class TestWebDAV(unittest.TestCase):
             sipper.shutdown(wait_before_shutdown=0.5)
             sipper.await_sipping_complete()
 
+    def test_webdav_gzip_enabled_with_accept_encoding(self):
+        """Test WebDAV with gzip enabled and client sending Accept-Encoding: gzip."""
+        test_file = os.path.join(self.test_dir, 'test.txt')
+        with open(test_file, 'w') as f:
+            f.write('test content')
+
+        sipper = Sipper(self.test_dir, webdav_enabled=True, gzip=True)
+        
+        def _run_test():
+            self.assertTrue(wait_for_server(self.address, self.port), "Server did not start in time.")
+            
+            conn = HTTPConnection(self.address, self.port)
+            conn.request("PROPFIND", "/test.txt", headers={"Depth": "0", "Accept-Encoding": "gzip"})
+            response = conn.getresponse()
+            
+            self.assertEqual(response.status, 207)
+            self.assertEqual(response.getheader('Content-Encoding'), 'gzip', "Response should have gzip encoding")
+            
+            conn.close()
+        
+        try:
+            sipper.start_sipping(self.address, self.port)
+            t = threading.Thread(target=_run_test)
+            t.start()
+            t.join(timeout=10)
+        finally:
+            sipper.shutdown(wait_before_shutdown=0.5)
+            sipper.await_sipping_complete()
+
+    def test_webdav_gzip_enabled_without_accept_encoding(self):
+        """Test WebDAV with gzip enabled but client not sending Accept-Encoding."""
+        test_file = os.path.join(self.test_dir, 'test.txt')
+        with open(test_file, 'w') as f:
+            f.write('test content')
+
+        sipper = Sipper(self.test_dir, webdav_enabled=True, gzip=True)
+        
+        def _run_test():
+            self.assertTrue(wait_for_server(self.address, self.port), "Server did not start in time.")
+            
+            conn = HTTPConnection(self.address, self.port)
+            conn.request("PROPFIND", "/test.txt", headers={"Depth": "0"})
+            response = conn.getresponse()
+            
+            self.assertEqual(response.status, 207)
+            self.assertIsNone(response.getheader('Content-Encoding'), "Response should not have gzip encoding when client doesn't request it")
+            
+            conn.close()
+        
+        try:
+            sipper.start_sipping(self.address, self.port)
+            t = threading.Thread(target=_run_test)
+            t.start()
+            t.join(timeout=10)
+        finally:
+            sipper.shutdown(wait_before_shutdown=0.5)
+            sipper.await_sipping_complete()
+
+    def test_webdav_gzip_disabled(self):
+        """Test WebDAV with gzip disabled."""
+        test_file = os.path.join(self.test_dir, 'test.txt')
+        with open(test_file, 'w') as f:
+            f.write('test content')
+
+        sipper = Sipper(self.test_dir, webdav_enabled=True, gzip=False)
+        
+        def _run_test():
+            self.assertTrue(wait_for_server(self.address, self.port), "Server did not start in time.")
+            
+            conn = HTTPConnection(self.address, self.port)
+            conn.request("PROPFIND", "/test.txt", headers={"Depth": "0", "Accept-Encoding": "gzip"})
+            response = conn.getresponse()
+            
+            self.assertEqual(response.status, 207)
+            self.assertIsNone(response.getheader('Content-Encoding'), "Response should not have gzip encoding when gzip is disabled")
+            
+            conn.close()
+        
+        try:
+            sipper.start_sipping(self.address, self.port)
+            t = threading.Thread(target=_run_test)
+            t.start()
+            t.join(timeout=10)
+        finally:
+            sipper.shutdown(wait_before_shutdown=0.5)
+            sipper.await_sipping_complete()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,8 +1,10 @@
+import gzip
 import os
 import pathlib
 import shutil
 import urllib.parse
 import xml.etree.ElementTree as eT
+from io import BytesIO
 from bottle import request, response, abort, route
 
 from sipper_core.constants import get_mime_extensions
@@ -32,8 +34,9 @@ def formatdate(timeval, localtime=False, usegmt=True):
 
 
 class WebDavRoutes:
-    def __init__(self, directory):
+    def __init__(self, directory, gzip_enabled=False):
         self.directory = directory
+        self.gzip_enabled = gzip_enabled
         self._register()
     
     def _register(self):
@@ -192,7 +195,21 @@ class WebDavRoutes:
 
         response.status = 207
         response.content_type = 'text/xml; charset=utf-8'
-        return eT.tostring(root, encoding='utf-8', xml_declaration=True)
+        xml_bytes = eT.tostring(root, encoding='utf-8', xml_declaration=True)
+        
+        # Apply gzip compression if enabled and client supports it
+        if self.gzip_enabled:
+            accept_encoding = request.headers.get('Accept-Encoding', '')
+            if 'gzip' in accept_encoding:
+                gzip_buffer = BytesIO()
+                with gzip.GzipFile(mode='wb', compresslevel=6, fileobj=gzip_buffer) as f:
+                    f.write(xml_bytes)
+                compressed_data = gzip_buffer.getvalue()
+                response.headers['Content-Encoding'] = 'gzip'
+                response.headers['Content-Length'] = len(compressed_data)
+                return compressed_data
+        
+        return xml_bytes
 
     def _add_resource_to_response(self, root, full_path, path, depth_str, depth_int, stat_result, etag_value, is_dir):
         """Add a response for the target path/resource."""
