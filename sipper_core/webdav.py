@@ -217,7 +217,8 @@ class WebDavRoutes:
 
         # D:href
         href = eT.SubElement(w_response, 'D:href')
-        href.text = path if path.startswith("/") else "/{}".format(path)
+        href_path = urllib.parse.quote(path)
+        href.text = href_path if href_path.startswith("/") else "/{}".format(href_path)
 
         # D:propstat
         propstat = eT.SubElement(w_response, 'D:propstat')
