@@ -102,40 +102,43 @@ class TestApplication(unittest.TestCase):
                 # Simulate an HTTP GET request with gzip accepted using HTTPConnection
                 conn = HTTPConnection(address, port)
 
-                url = "/hipster-ipsum.txt"
-                # headers = {"Accept-Encoding": "gzip"}
-                # Send a GET request with Accept-Encoding: gzip header
-                conn.request("GET", url)
+                try:
+                    url = "/hipster-ipsum.txt"
+                    # headers = {"Accept-Encoding": "gzip"}
+                    # Send a GET request with Accept-Encoding: gzip header
+                    conn.request("GET", url)
 
-                # Get the response
-                response = conn.getresponse()
+                    # Get the response
+                    response = conn.getresponse()
 
-                # Check that the response status code is 200
-                self.assertEqual(response.status, 200)
+                    # Check that the response status code is 200
+                    self.assertEqual(response.status, 200)
 
-                # If gzip is enabled, check if content is gzipped
-                content_encoding = response.getheader('Content-Encoding')
-                self.assertEqual(content_encoding, "gzip", "Content is not gzipped.")
+                    # If gzip is enabled, check if content is gzipped
+                    content_encoding = response.getheader('Content-Encoding')
+                    self.assertEqual(content_encoding, "gzip", "Content is not gzipped.")
 
-                # Read the response content
-                response_content = response.read()
+                    # Read the response content
+                    response_content = response.read()
 
-                # Verify if the content returned is gzipped (starts with gzip magic bytes)
-                self.assertTrue(response_content.startswith(b'\x1f\x8b'), "Response is not gzipped.")
-                # Decompress the response body if it's gzipped
-                if content_encoding == "gzip":
-                    import gzip
-                    import io
-                    buf = io.BytesIO(response_content)
-                    f = gzip.GzipFile(fileobj=buf)
-                    decompressed_data = f.read().decode("utf-8")
-                    # print("Decompressed Data:", decompressed_data)
-                    # Compare the decompressed data against the original file content
-                    with open(normal_file, "r", encoding="utf-8") as file:
-                        original_data = file.read()
+                    # Verify if the content returned is gzipped (starts with gzip magic bytes)
+                    self.assertTrue(response_content.startswith(b'\x1f\x8b'), "Response is not gzipped.")
+                    # Decompress the response body if it's gzipped
+                    if content_encoding == "gzip":
+                        import gzip
+                        import io
+                        buf = io.BytesIO(response_content)
+                        f = gzip.GzipFile(fileobj=buf)
+                        decompressed_data = f.read().decode("utf-8")
+                        # print("Decompressed Data:", decompressed_data)
+                        # Compare the decompressed data against the original file content
+                        with open(normal_file, "r", encoding="utf-8") as file:
+                            original_data = file.read()
 
-                    # Assert that the decompressed data matches the original file
-                    self.assertEqual(decompressed_data, original_data, "Decompressed data does not match the original file content.")
+                        # Assert that the decompressed data matches the original file
+                        self.assertEqual(decompressed_data, original_data, "Decompressed data does not match the original file content.")
+                finally:
+                    conn.close()
             t = threading.Thread(target=_run_test)
             t.start()
             t.join(timeout=10)
