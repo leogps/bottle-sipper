@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_submodules
 
-hiddenimports = []
+hiddenimports = ['xml.etree.ElementTree']
 hiddenimports += collect_submodules('pkg_resources')
 
 
@@ -9,7 +9,7 @@ a = Analysis(
     ['sipper.py'],
     pathex=[],
     binaries=[],
-    datas=[('sipper_core/templates/', 'sipper_core/templates/'), ('static/', 'static/'), ('sipper_core/', 'sipper_core/')],
+    datas=[('sipper_core/templates', 'sipper_core/templates'), ('static', 'static'), ('sipper_core', 'sipper_core')],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
