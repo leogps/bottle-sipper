@@ -34,11 +34,13 @@ from sipper_core.constants import get_icons, get_mime_extensions, YES, get_templ
 from sipper_core.common import perms_to_string, sizeof_fmt, handle_windows_directory, build_icons, \
     file_exists_and_is_file, FileDetails
 from sipper_core.compress import apply_gzip
+from sipper_core.dir_cache import DirCache
 from sipper_core.metadata import __version__
 
 NUM_WORKER_THREADS = 10
 REQ_QUEUE_SIZE = 100
 DEFAULT_CACHE_EXPIRY = 60
+DEFAULT_DIRECTORY_CACHE_EXPIRY = 60
 
 def is_stdout_buffered():
     return not sys.stdout.isatty()
@@ -88,7 +90,8 @@ class Sipper(Thread):
                  num_of_worker_threads=NUM_WORKER_THREADS,
                  request_queue_size=REQ_QUEUE_SIZE,
                  cache_expiry=DEFAULT_CACHE_EXPIRY,
-                 webdav_enabled=False):
+                 webdav_enabled=False,
+                 dir_cache_expiry=DEFAULT_DIRECTORY_CACHE_EXPIRY):
         self.servers_running = False
         self.shutdown_requested = False  # To prevent multiple shutdown calls
         self.shutdown_event = None
@@ -135,6 +138,8 @@ class Sipper(Thread):
         self.num_of_worker_threads = num_of_worker_threads
         self.request_queue_size = request_queue_size
         self.cache_expiry = cache_expiry
+        self.dir_cache_expiry = dir_cache_expiry
+        self.dir_cache = DirCache(ttl=dir_cache_expiry)
         self.webdav_enabled = webdav_enabled
 
     def get_server_address(self):
@@ -282,7 +287,7 @@ class Sipper(Thread):
         # # Set up WebDAV if enabled
         if webdav_enabled:
             from sipper_core.webdav import WebDavRoutes
-            self.webdav_routes = WebDavRoutes(self.directory, self.gzip)
+            self.webdav_routes = WebDavRoutes(self.directory, self.gzip, self.dir_cache)
 
         # print('Serving at http://{}:{}'.format(ip, port))
         server = SipperCherootServer(host=address,
@@ -385,6 +390,7 @@ class Sipper(Thread):
         print('Shutting down...')
         for server in self.servers:
             server.shutdown()
+        self.dir_cache.stop()
         self.servers_running = False
 
     def config_formatted(self):
@@ -412,6 +418,9 @@ class Sipper(Thread):
 
         webdav_enabled = 'Enabled' if self.webdav_enabled else 'Disabled'
         config += f'\n WebDAV: {webdav_enabled}'
+
+        dir_cache = 'Disabled' if self.dir_cache_expiry <= 0 else f'{self.dir_cache_expiry}s'
+        config += f'\n Directory Cache: {dir_cache}'
 
         if self.silent:
             config += '\n Silent: True'
@@ -467,6 +476,10 @@ if __name__ == "__main__":
     parser.add_argument('-x', '--cache-expiry', type=int, default=DEFAULT_CACHE_EXPIRY, required=False,
                         help='Set cache time (in seconds) for cache-control max-age header, e.g. -x 10 for 10 seconds. '
                              f'To disable caching, use -x -1. Default is {DEFAULT_CACHE_EXPIRY}s')
+    parser.add_argument('-D', '--dir-cache-expiry', type=int, default=DEFAULT_DIRECTORY_CACHE_EXPIRY, required=False,
+                        help='Set cache time (in seconds) for directory cache, can control how long a directory should '
+                             'be considered up to date and not refreshed from the backend., e.g. -D 10 for 10 seconds. '
+                             f'To disable, use -D 0. Default is {DEFAULT_DIRECTORY_CACHE_EXPIRY}s')
     parser.add_argument('-v', '--version', action='store_true', default=False, required=False,
                         help='Print the version and exit.')
 
@@ -513,7 +526,8 @@ if __name__ == "__main__":
                     num_of_worker_threads=args.num_of_worker_threads,
                     request_queue_size=args.connections,
                     cache_expiry=args.cache_expiry,
-                    webdav_enabled=args.webdav)
+                    webdav_enabled=args.webdav,
+                    dir_cache_expiry=args.dir_cache_expiry)
 
     print('Starting up bottle-sipper, serving %s' % sipper.directory)
     print('')

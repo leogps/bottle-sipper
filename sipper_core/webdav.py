@@ -8,11 +8,12 @@ from io import BytesIO
 from bottle import request, response, abort, route
 
 from sipper_core.constants import get_mime_extensions
+from sipper_core.dir_cache import Dir, File, DirCache
 
 DAV_NS = 'DAV:'
 
 
-def get_mime_type(filename):
+def get_mime_type(filename) -> str:
     """Determine MIME type of a file."""
 
     extension = pathlib.Path(filename).suffix
@@ -23,7 +24,7 @@ def get_mime_type(filename):
         mime_type = mime_type_extensions[ext]
     else:
         mime_type = 'application/octet-stream'
-    
+
     return mime_type
 
 
@@ -34,11 +35,12 @@ def formatdate(timeval, localtime=False, usegmt=True):
 
 
 class WebDavRoutes:
-    def __init__(self, directory, gzip_enabled=False):
+    def __init__(self, directory, gzip_enabled=False, dir_cache: DirCache = None):
         self.directory = directory
         self.gzip_enabled = gzip_enabled
+        self.dir_cache = dir_cache
         self._register()
-    
+
     def _register(self):
         route('/', method='PROPFIND')(self.propfind)
         route('/<path:path>', method='PROPFIND')(self.propfind)
@@ -166,37 +168,31 @@ class WebDavRoutes:
         full_path = os.path.join(self.directory, path.lstrip('/'))
         if not os.path.exists(full_path):
             abort(404)
-        
-        stat_result = os.stat(full_path)
+
         is_dir = os.path.isdir(full_path)
-        
+
         if depth is None:
             depth_header = request.get_header('Depth')
             if depth_header is not None:
                 depth = depth_header
-        
+
         depth_map = {'0': 0, '1': 1, 'infinity': -1}
         depth_int = depth_map.get(str(depth), -1) if depth is not None else -1
-        depth_str = str(depth_int)
-        
-        etag_value = f'{int(stat_result.st_mtime)}-{stat_result.st_size}'
-        # mime_type = get_mime_type(full_path)
-        
-        # Build XML response
+
         root = eT.Element('D:multistatus')
         root.set('xmlns:D', DAV_NS)
 
-        # First, add the target resource
-        self._add_resource_to_response(root, full_path, path, depth_str, depth_int, stat_result, etag_value, is_dir)
-        
-        # If depth is 1 or infinity, also add children
-        if is_dir and (depth_int == 1 or depth_int == -1):
-            self._add_children_to_response(root, full_path, depth_int, path)
+        if is_dir:
+            self._add_dir_to_response(root, full_path, path, depth_int)
+        else:
+            stat = os.stat(full_path)
+            etag_value = f'{int(stat.st_mtime)}-{stat.st_size}'
+            self._add_resource_to_response(root, full_path, path, str(depth_int), depth_int, stat, etag_value, False)
 
         response.status = 207
         response.content_type = 'text/xml; charset=utf-8'
         xml_bytes = eT.tostring(root, encoding='utf-8', xml_declaration=True)
-        
+
         # Apply gzip compression if enabled and client supports it
         if self.gzip_enabled:
             accept_encoding = request.headers.get('Accept-Encoding', '')
@@ -208,8 +204,89 @@ class WebDavRoutes:
                 response.headers['Content-Encoding'] = 'gzip'
                 response.headers['Content-Length'] = len(compressed_data)
                 return compressed_data
-        
+
         return xml_bytes
+
+    def _add_dir_to_response(self, root, full_path, path, depth_int):
+        """Add a directory and its descendants to the XML multistatus element.
+
+        Checks DirCache at each directory node before hitting the filesystem.
+        On a cache miss the node is built from disk and stored in the cache.
+        Partial hits (e.g. cached_depth=1, request depth=infinity) are handled
+        transparently: cached children are reused and each child directory is
+        checked in the cache independently during recursive traversal.
+
+        depth_int: 0 = self only, 1 = self + immediate children, -1 = infinity
+        """
+        norm_path = path if path.startswith('/') else '/' + path
+        cached = self.dir_cache.get(norm_path, depth_int) if self.dir_cache else None
+
+        if cached:
+            dir_node = cached.node
+        else:
+            stat = os.stat(full_path)
+            dir_node = Dir(
+                path=norm_path,
+                full_path=full_path,
+                stat=stat,
+                parent_path=os.path.dirname(norm_path) or '/'
+            )
+
+        self._add_resource_to_response(
+            root, full_path, path,
+            str(depth_int), depth_int,
+            dir_node.stat, dir_node.etag_value, True
+        )
+
+        if depth_int == 0:
+            if self.dir_cache and not cached:
+                self.dir_cache.put(norm_path, dir_node, 0)
+            return
+
+        if cached and (cached.cached_depth >= 1 or cached.cached_depth == -1):
+            children = dir_node.children()
+        else:
+            children = []
+            for child_name in os.listdir(full_path):
+                child_full = os.path.join(full_path, child_name)
+                child_url = norm_path.rstrip('/') + '/' + child_name
+                try:
+                    child_stat = os.stat(child_full)
+                    child_is_dir = os.path.isdir(child_full)
+                except OSError:
+                    continue
+                if child_is_dir:
+                    child_node = Dir(
+                        path=child_url,
+                        full_path=child_full,
+                        stat=child_stat,
+                        parent_path=norm_path
+                    )
+                else:
+                    child_node = File(
+                        path=child_url,
+                        full_path=child_full,
+                        stat=child_stat,
+                        parent_path=norm_path,
+                        mime_type=get_mime_type(child_full)
+                    )
+                dir_node.add_child(child_node)
+                children.append(child_node)
+
+        child_remaining = -1 if depth_int == -1 else depth_int - 1
+
+        for child in children:
+            if isinstance(child, Dir):
+                self._add_dir_to_response(root, child.full_path, child.path, child_remaining)
+            else:
+                self._add_resource_to_response(
+                    root, child.full_path, child.path,
+                    str(child_remaining), child_remaining,
+                    child.stat, child.etag_value, False
+                )
+
+        if self.dir_cache and not cached:
+            self.dir_cache.put(norm_path, dir_node, depth_int)
 
     def _add_resource_to_response(self, root, full_path, path, depth_str, depth_int, stat_result, etag_value, is_dir):
         """Add a response for the target path/resource."""
@@ -247,36 +324,3 @@ class WebDavRoutes:
         status = eT.SubElement(propstat, 'D:status')
         status.text = 'HTTP/1.1 200 OK'
 
-    def _add_children_to_response(self, root, full_path, depth_int, parent_path):
-        """Add responses for children of a directory up to the specified depth."""
-        # Handle special case: root directory (empty path)
-        if parent_path == '':
-            parent_path = '/'
-
-        dir_path_str = full_path
-        dir_basename = os.path.basename(full_path)
-        _ = '{}{}'.format(parent_path, dir_basename)
-        
-        dir_contents = os.listdir(dir_path_str)
-        
-        for child_name in dir_contents:
-            child_full_path = os.path.join(dir_path_str, child_name)
-            child_path_str = os.path.join(parent_path, child_name)
-            child_stat = os.stat(child_full_path)
-            _ = f"{int(child_stat.st_mtime)}-{child_stat.st_size}"
-            _ = get_mime_type(child_full_path)
-            child_is_dir = os.path.isdir(child_full_path)
-            
-            # Check if we should include this child based on depth
-            if depth_int == 1:
-                # Add this immediate child
-                child_etag_value = f"{int(child_stat.st_mtime)}-{child_stat.st_size}"
-                self._add_resource_to_response(root, child_path_str, child_path_str, "1", 1, child_stat, child_etag_value, child_is_dir)
-                # For depth 1, we only process immediate children, don't recurse into directories
-            else:  # depth_int == -1 (infinity)
-                # Recursively add all descendants
-                child_etag_value = f"{int(child_stat.st_mtime)}-{child_stat.st_size}"
-                self._add_resource_to_response(root, child_path_str, child_path_str, "infinity", -1, child_stat, child_etag_value, child_is_dir)
-                
-                if child_is_dir:
-                    self._add_children_to_response(root, child_full_path, -1, child_path_str)

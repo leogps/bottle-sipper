@@ -1,10 +1,10 @@
-FROM python:3.12.9-alpine AS builder
+FROM python:3.14-alpine AS builder
 
 WORKDIR /usr/src/app
 
 COPY . .
 
-RUN apk add --no-cache binutils py3-pip py3-setuptools py3-wheel musl-dev gcc libffi-dev \ 
+RUN apk add --no-cache binutils py3-pip py3-setuptools py3-wheel musl-dev gcc libffi-dev \
     && pip install --upgrade pip && \
     pip install pyinstaller && \
     pip install -r requirements.txt && \
